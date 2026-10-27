@@ -832,7 +832,7 @@
   <project name="platform/tools/trebuchet" path="tools/trebuchet" remote="aosp" revision="5c74aa19df59af3292dadc6db03ffbf5235b3a9d" upstream="refs/tags/android-10.0.0_r41" dest-branch="refs/tags/android-10.0.0_r41" groups="cts,pdk,pdk-cw-fs,pdk-fs,tools"/>
   <project name="platform_manifest" path="android" remote="rr" revision="a5df4c516aea680f8fb49c523116a61490f2a21f" upstream="Q" dest-branch="Q"/>
   <project name="platform_packages_apps_ThemePicker" path="packages/apps/ThemePicker" remote="rr" revision="3c54e00c706bd77e17d5caf96ae8713ecce47472" upstream="Q" dest-branch="Q"/>
-  <project name="system_sepolicy" path="system/sepolicy" remote="rr" revision="8a568ea1075029068baacc1ec8ae2b8bdb2db2a6" upstream="2c975b5c7c8e525b83c517be41b8cb5fc5136cd4" dest-branch="2c975b5c7c8e525b83c517be41b8cb5fc5136cd4"/>
+  <project name="system_sepolicy" path="system/sepolicy" remote="rr" revision="2074c84f4f777af6784b2f7765751e7a318886ae" upstream="2c975b5c7c8e525b83c517be41b8cb5fc5136cd4" dest-branch="2c975b5c7c8e525b83c517be41b8cb5fc5136cd4"/>
   <project name="toolchain/benchmark" remote="aosp" revision="1fba1825631e6e52dff5b3ceb87a5b439e2acf52" upstream="refs/tags/android-10.0.0_r41" dest-branch="refs/tags/android-10.0.0_r41"/>
   <project name="toolchain/pgo-profiles" remote="aosp" revision="248f97c5fdc39400ebcb51b72ba2263fe12781a7" upstream="refs/tags/android-10.0.0_r41" dest-branch="refs/tags/android-10.0.0_r41" groups="pdk"/>
   <project name="vendor_overlays_resurrection" path="packages/overlays/Resurrection" remote="rr" revision="221248e9587eec899426a17dc0c298da9992a8ca" upstream="Q" dest-branch="Q"/>
