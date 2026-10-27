@@ -5,8 +5,9 @@ Resurrection Remix Q. Android 10, produkt `rr_hinoki-userdebug`.
 
 ## Stan
 
-Źródła są przygotowane do pierwszej kompilacji. Nie uruchamiano kompilacji ani
-testu RR na telefonie. Działanie poprzedniego LineageOS nie oznacza jeszcze,
+Pełną kompilację uruchomiono 2026-10-27 po weryfikacji i przeniesieniu starych
+drzew RisingOS na Dysk3. Bieżący wynik opisuje `BUILD_STATUS.md`. RR nie był
+jeszcze testowany na telefonie. Działanie poprzedniego LineageOS nie oznacza,
 że gotowy RR przejdzie wszystkie testy. Baza RR jest historyczna: deklaruje
 Android 10 i SPL `2021-09-05`; data nie została sztucznie podniesiona.
 
@@ -128,6 +129,12 @@ Pierwszy argument to liczba zadań, drugi opcjonalny argument to inny katalog
 `endozero`, typ `Unofficial` i względne `OUT_DIR=out`. Przed pierwszym buildem
 sprawdza dostępność co najmniej 120 GiB miejsca. Nie dziedziczy zmiennych
 produktu, Javy, GMS ani SPL ze środowiska RisingOS.
+
+Starszy Clang używany przez RenderScript wymaga `libncurses.so.5` i
+`libtinfo.so.5`. Na tym komputerze biblioteki są już w
+`/home/kejlo/.local/legacy-build-libs/lib/x86_64-linux-gnu`; wrapper udostępnia
+ten katalog przez `LD_LIBRARY_PATH`. Na innym hoście przygotuj biblioteki ABI 5
+albo dostosuj tę ścieżkę. Nie zastępuj ich dowiązaniami do ABI 6.
 
 Logi zapisuje w `/home/kejlo/xperia_XA1/build-logs/`. Wyniki trafią do
 `out/target/product/hinoki/`, a ZIP do `RROS-Q-8.7.3-*-hinoki-Unofficial.zip`.
