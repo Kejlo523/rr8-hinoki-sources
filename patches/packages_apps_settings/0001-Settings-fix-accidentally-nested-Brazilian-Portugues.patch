@@ -1,0 +1,32 @@
+From 7719dfe56ea751dba310bf2b70960df64c81f9e5 Mon Sep 17 00:00:00 2001
+From: Kejlo <62387434+Kejlo523@users.noreply.github.com>
+Date: Tue, 27 Oct 2026 22:16:39 +0100
+Subject: [PATCH] Settings: fix accidentally nested Brazilian Portuguese
+ strings
+
+---
+ res/values-pt-rBR/rr_strings.xml | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/res/values-pt-rBR/rr_strings.xml b/res/values-pt-rBR/rr_strings.xml
+index 405e10f7310ce568fe01be244965801b468bd867..4a6d6cce7e32684a0d9ee9bbb30124a8d753f286 100644
+--- a/res/values-pt-rBR/rr_strings.xml
++++ b/res/values-pt-rBR/rr_strings.xml
+@@ -1065,7 +1065,7 @@
+     <!-- Slim recents membar -->
+     <string name="slim_recents_mem_display_category_title">Barra de memória</string>
+     <string name="slim_recents_mem_display_title">Mostrar barra de memória</string>
+-    <string name="slim_recents_mem_display_summaryOn">Barra de memória ativada/string>
++    <string name="slim_recents_mem_display_summaryOn">Barra de memória ativada</string>
+     <string name="slim_recents_mem_display_summaryOff">Barra de memória desativada</string>
+     <string name="slim_recents_mem_display_color">Cor da barra de memória</string>
+     <string name="slim_recents_mem_display_text_color">Cor do texto da barra de memória</string>
+@@ -2391,7 +2391,7 @@
+     <!-- Button backlight -->
+     <string name="buttons_title">Botões</string>
+     <string name="buttons_summary">Botões, Barra de navegação</string>
+-    <string name="button_backlight_title">Luz de fundo do botão</string></string>
++    <string name="button_backlight_title">Luz de fundo do botão</string>
+     <string name="button_backlight_summary">Configure a luz de fundo para teclas capacitivas</string>
+     <string name="button_backlight_on_touch_only_title">Toque de botão</string>
+     <string name="button_backlight_on_touch_only_summary">Ativar luz de fundo com tempo limite apenas no toque do botão</string>
