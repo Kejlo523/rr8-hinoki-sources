@@ -121,6 +121,7 @@ Poniższe komendy nie zostały wykonane podczas przygotowania źródeł:
 ```bash
 cd /home/kejlo/xperia_XA1/source/resurrection-remix-Q-hinoki
 unset OUT_DIR OUT_DIR_COMMON_BASE JAVA_HOME ANDROID_JAVA_HOME
+export RR_BUILDTYPE=Unofficial RR_BUILD=hinoki days_to_log=1
 source build/envsetup.sh
 lunch rr_hinoki-userdebug
 m -j4 bacon
