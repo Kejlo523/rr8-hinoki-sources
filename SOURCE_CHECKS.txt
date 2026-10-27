@@ -1,4 +1,4 @@
-Source preparation audit — 2026-10-27T19:51:30.316620+01:00
+Initial source preparation audit (before build authorization) — 2026-10-27T19:51:30.316620+01:00
 Device: Xperia XA1 Dual G3112 / hinoki
 Base: Resurrection Remix Q 8.7.3 / Android 10
 No Android build, lunch, compiler or flash was invoked.
@@ -31,3 +31,10 @@ device/sony/mt6757-common 9f5ec7fb554b14df288cfe475436528b6ab55003 (base 489af7e
 Not validated: compilation, installation, boot, hardware functions, power consumption.
 Old Lineage device test results are not RR test results.
 Pinned base manifest is fetchable upstream; working-local manifest includes unpublished local commits.
+
+Subsequent build preparation checks:
+- 16th patch ports Lineage kernel host tools to Clang; the updated vendor/rr patch series replays exactly.
+- 395 host ELF executables checked with the configured library paths: no missing shared libraries.
+- Bison generated the SELinux parser with explicit local M4 successfully.
+- Kernel defconfig generation passed with the Clang host-tools correction.
+- Compilation is in progress; current state is in BUILD_STATUS.md.

@@ -293,7 +293,7 @@
   <project name="android_vendor_qcom_opensource_bluetooth_ext" path="vendor/qcom/opensource/commonsys/bluetooth_ext" remote="rr" revision="72d88e86f092d600521dbb12dc1f25e7185005a9" upstream="Q" dest-branch="Q"/>
   <project name="android_vendor_qcom_opensource_packages_apps_Bluetooth" path="vendor/qcom/opensource/commonsys/packages/apps/Bluetooth" remote="rr" revision="3148ee74efaf345f41f3b18ad8c94bde57bca038" upstream="Q" dest-branch="Q"/>
   <project name="android_vendor_qcom_opensource_system_bt" path="vendor/qcom/opensource/commonsys/system/bt" remote="rr" revision="24a5660ecf368bc0e18c3bde8ff961d7df86c749" upstream="Q" dest-branch="Q"/>
-  <project name="android_vendor_resurrection" path="vendor/rr" remote="rr" revision="1c590b280a9a2044bde980edef982d7edb3364e3" upstream="a8dd039b4acb25bb47179fd51ae62dfce36c25f6" dest-branch="a8dd039b4acb25bb47179fd51ae62dfce36c25f6"/>
+  <project name="android_vendor_resurrection" path="vendor/rr" remote="rr" revision="8fc5b3882630715b14b0531e25aff517c5ccb939" upstream="a8dd039b4acb25bb47179fd51ae62dfce36c25f6" dest-branch="a8dd039b4acb25bb47179fd51ae62dfce36c25f6"/>
   <project name="android_vendor_sony_mt6757-common" path="vendor/sony/mt6757-common" remote="hinoki-kejlo" revision="aec41b19273406382927af8ca4fcf283997ec7c8" groups="local::hinoki"/>
   <project name="device/common" remote="aosp" revision="a766aad7998794ac62991fcd7b67aecb341750e4" upstream="refs/tags/android-10.0.0_r41" dest-branch="refs/tags/android-10.0.0_r41" groups="pdk,pdk-cw-fs"/>
   <project name="device/generic/arm64" remote="aosp" revision="b2aea8576e3928e9add8b616740e56c1c5a811d2" upstream="refs/tags/android-10.0.0_r41" dest-branch="refs/tags/android-10.0.0_r41" groups="pdk"/>
