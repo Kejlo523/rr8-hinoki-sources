@@ -1,0 +1,102 @@
+From 16c015a1e7402dce580519a583c881e7715dc74e Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?J=C4=99drek?= <62387434+Kejlo523@users.noreply.github.com>
+Date: Thu, 17 Sep 2026 22:47:29 +0200
+Subject: [PATCH 2/2] telephony: stabilize hinoki legacy RIL identity and SIM
+ state
+
+(cherry picked from commit 1f16013964eaa3f14b0de483fb3d958c168f425e)
+---
+ .../internal/telephony/GsmCdmaPhone.java      |  8 +++++
+ .../com/android/internal/telephony/RIL.java   | 36 +++++++++++++++++--
+ 2 files changed, 41 insertions(+), 3 deletions(-)
+
+diff --git a/src/java/com/android/internal/telephony/GsmCdmaPhone.java b/src/java/com/android/internal/telephony/GsmCdmaPhone.java
+index 7ee60bf60feb5629f15276fedd32dcda47059894..4b3b8698a36942ad010007ed8684dadf4e291f14 100644
+--- a/src/java/com/android/internal/telephony/GsmCdmaPhone.java
++++ b/src/java/com/android/internal/telephony/GsmCdmaPhone.java
+@@ -41,6 +41,7 @@ import android.content.SharedPreferences;
+ import android.database.SQLException;
+ import android.net.Uri;
+ import android.os.AsyncResult;
++import android.os.Build;
+ import android.os.Bundle;
+ import android.os.Handler;
+ import android.os.Message;
+@@ -1613,6 +1614,13 @@ public class GsmCdmaPhone extends Phone {
+     @Override
+     public String getDeviceSvn() {
+         if (isPhoneTypeGsm() || isPhoneTypeCdmaLte()) {
++            // The legacy MTK RIL used by hinoki does not always propagate the
++            // IMEISV returned by getDeviceIdentity.  Settings obtains the SV
++            // through this method, so provide the standard two-digit fallback
++            // instead of exposing it as unknown.
++            if ("hinoki".equals(Build.DEVICE) && TextUtils.isEmpty(mImeiSv)) {
++                return "00";
++            }
+             return mImeiSv;
+         } else {
+             loge("getDeviceSvn(): return 0");
+diff --git a/src/java/com/android/internal/telephony/RIL.java b/src/java/com/android/internal/telephony/RIL.java
+index 3081c282b376554b59a1eb9034b2a6ea8a57e353..8dc6bfbc0759337fa4b88c10db56ef4c1872ea9b 100644
+--- a/src/java/com/android/internal/telephony/RIL.java
++++ b/src/java/com/android/internal/telephony/RIL.java
+@@ -748,6 +748,9 @@ public class RIL extends BaseCommands implements CommandsInterface {
+ 
+         // Suppress only Android's premature queries. Once the stock RIL has
+         // had time to initialise the UICC, use its authoritative card state.
++        // In particular, the real response carries the application AID needed
++        // by subsequent SIM I/O; a permanently synthesized empty AID leaves
++        // SIMRecords incomplete even though the framework displays the card.
+         if (ready) {
+             return false;
+         }
+@@ -796,6 +799,11 @@ public class RIL extends BaseCommands implements CommandsInterface {
+             result.sendToTarget();
+         }
+ 
++        // Do not arm this retry until Android has actually requested radio
++        // power.  The committed, working bring-up deliberately kept early
++        // GET_SIM_STATUS traffic off the legacy MTK proxy: a timer started by
++        // a pre-power query can race the vendor's own SIM_BUSY polling and
++        // leave the UICC application permanently reported as absent.
+         if (!ready && powerOn != 0 && !mHinokiIccStatusRetryScheduled) {
+             mHinokiIccStatusRetryScheduled = true;
+             mRilHandler.postDelayed(() -> {
+@@ -3619,12 +3627,34 @@ public class RIL extends BaseCommands implements CommandsInterface {
+     public void getDeviceIdentity(Message result) {
+         if ("hinoki".equals(Build.DEVICE)) {
+             if (result != null) {
+-                // IMEI is already exported by the Oreo boot path; avoid the
+-                // secondary identity AT sequence that races the mux.
++                // Sony's Oreo bootloader exports the IMEI on the kernel command
++                // line, but does not populate the legacy MTK properties.  Avoid
++                // the secondary identity AT sequence (it races the mux on this
++                // device) and use the bootloader-provided value instead.
+                 String imei = SystemProperties.get("ril.imei.sim1",
+                         SystemProperties.get("persist.radio.device.imei", ""));
++                if (TextUtils.isEmpty(imei)) {
++                    try {
++                        String cmdline = android.os.FileUtils.readTextFile(
++                                new java.io.File("/proc/cmdline"), 4096, null);
++                        for (String argument : cmdline.split("\\s+")) {
++                            final String prefix = "oemandroidboot.imei=";
++                            if (!argument.startsWith(prefix)) continue;
++
++                            String candidate = argument.substring(prefix.length());
++                            boolean valid = candidate.length() >= 14 && candidate.length() <= 16;
++                            for (int i = 0; valid && i < candidate.length(); i++) {
++                                valid = Character.isDigit(candidate.charAt(i));
++                            }
++                            if (valid) imei = candidate;
++                            break;
++                        }
++                    } catch (IOException e) {
++                        riljLoge("Unable to read hinoki boot identity");
++                    }
++                }
+                 AsyncResult.forMessage(result,
+-                        new String[] {imei, "", "", ""}, null);
++                        new String[] {imei, "00", "", ""}, null);
+                 result.sendToTarget();
+             }
+             return;

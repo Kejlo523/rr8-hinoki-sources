@@ -1,0 +1,159 @@
+# Resurrection Remix Q 8.7.3 — Xperia XA1 Dual G3112
+
+Przeniesienie poprawek sprzętowych z portu LineageOS 17.1 hinoki V27 do
+Resurrection Remix Q. Android 10, produkt `rr_hinoki-userdebug`.
+
+## Stan
+
+Źródła są przygotowane do pierwszej kompilacji. Nie uruchamiano kompilacji ani
+testu RR na telefonie. Działanie poprzedniego LineageOS nie oznacza jeszcze,
+że gotowy RR przejdzie wszystkie testy. Baza RR jest historyczna: deklaruje
+Android 10 i SPL `2021-09-05`; data nie została sztucznie podniesiona.
+
+RR zachowuje własne ustawienia, personalizację interfejsu, motywy i framework.
+Wybrano go zamiast Paranoid Android Quartz, ponieważ RR Q bazuje na LineageOS
+17.1 i pasuje do istniejącego BSP. Quartz ma inną bazę CAF i odwołania do
+nieczynnych serwerów CodeAurora, więc wymagałby większej migracji.
+
+## Katalogi
+
+- Gotowe lokalne drzewo: `/home/kejlo/xperia_XA1/source/resurrection-remix-Q-hinoki`.
+- Ten zestaw manifestów i poprawek: `/home/kejlo/xperia_XA1/source/rr-hinoki-port`.
+- Niezmienione źródła referencyjne: `/home/kejlo/xperia_XA1/source/lineage-17.1-hinoki`.
+
+Drzewo RR korzysta z obiektów Git istniejącego LineageOS przez `--reference`.
+Nie usuwaj jego `.repo/project-objects`, dopóki RR korzysta z tych alternates.
+Nie ma zależności od archiwizowanych katalogów RisingOS `s10e` / `samsung_a6`.
+
+## Co przeniesiono
+
+- Dokładne rewizje urządzenia, kernela, vendor blobs, toolchainów i portowanych
+  projektów z manifestu V27 z 2026-09-21.
+- System-as-root z rzeczywistym ramdiskiem boot i statycznym first-stage init,
+  wraz z obsługą ramdisku przez narzędzia podpisywania target-files.
+- Zgodność starego MediaTeka: kamera, audio, storage/sdcardfs, RIL/SIM,
+  MTP z legacy USB gadget, Wi-Fi bez niezgodnego cross-DSO CFI.
+- Poprawki SELinux, GNSS/SUPL, HWC, NFC i wykrywania słuchawek zawarte w
+  istniejących drzewach urządzenia, kernela i vendor.
+- Aplikacje Device Info HW, Kernel Adiutor, DuckDuckGo i busybox z V27.
+- Obejście braku ładowalnych modułów kernela w `vendor/rr/build/tasks/kernel.mk`.
+
+Zmiany w projektach RR są osobnymi commitami gałęzi `rr-Q-hinoki` i plikami
+`patches/`. Nie zastąpiono całego frameworka RR frameworkiem LineageOS.
+
+Poprawkę `ro.audio.disable_sound_effects` dostosowano do klasy
+`SoundEffectsHelper`, do której RR przeniósł obsługę efektów. Nie przywracano
+starej implementacji `AudioService`. Obejście kończy ładowanie callbackiem,
+zanim powstanie SoundPool.
+
+Kernel i vendor pozostają dokładnie na rewizjach V27. Konfiguracja kernela
+dalej nazywa się `lineage_hinoki_defconfig`; nazwa nie zmienia systemu na Lineage.
+Oryginalny `lineage_hinoki.mk` pozostawiono jako plik referencyjny, lecz
+`AndroidProducts.mk` rejestruje wyłącznie produkt RR.
+
+## Odtworzenie na świeżym katalogu
+
+Manifest bazowy RR:
+`https://github.com/ResurrectionRemix/platform_manifest.git`, gałąź `Q`,
+commit `a5df4c516aea680f8fb49c523116a61490f2a21f`.
+
+Przykład (wyłącznie w nowym katalogu, nie w istniejącym drzewie LineageOS):
+
+```bash
+mkdir -p /home/kejlo/xperia_XA1/source/rr-hinoki-fresh
+cd /home/kejlo/xperia_XA1/source/rr-hinoki-fresh
+repo init -u https://github.com/ResurrectionRemix/platform_manifest.git \
+  -b a5df4c516aea680f8fb49c523116a61490f2a21f --depth=1 --no-clone-bundle
+mkdir -p .repo/local_manifests
+cp /home/kejlo/xperia_XA1/source/rr-hinoki-port/hinoki.xml \
+  .repo/local_manifests/hinoki.xml
+repo sync -c --no-tags --no-clone-bundle -j4
+bash /home/kejlo/xperia_XA1/source/rr-hinoki-port/apply-patches.sh "$PWD"
+```
+
+`hinoki.xml` przypina sprzęt i wszystkie projekty objęte patchami do konkretnych
+commitów. Pozostałe projekty wybiera manifest upstream.
+
+`manifest-base-pinned.xml` przypina **wszystkie 783 projekty** do pobranych
+rewizji. Dla powtarzalnego odtworzenia użyj go zamiast lokalnego `hinoki.xml`:
+po pierwszym `repo init`, przed synchronizacją, w nowym katalogu bez lokalnych
+manifestów wykonaj:
+
+```bash
+cp /home/kejlo/xperia_XA1/source/rr-hinoki-port/manifest-base-pinned.xml \
+  .repo/manifests/hinoki-pinned.xml
+repo init -m hinoki-pinned.xml
+repo sync -c --no-tags --no-clone-bundle -j4
+bash /home/kejlo/xperia_XA1/source/rr-hinoki-port/apply-patches.sh "$PWD"
+```
+
+`manifest-working-local.xml` jest raportem aktualnych HEAD po nałożeniu
+poprawek. Zawiera lokalne commity, których nie wysłano na GitHub, więc **nie
+służy do synchronizowania nowego drzewa**. Manifest bazowy nie ma tego problemu.
+
+Skrypt najpierw sprawdza czystość i bazę wszystkich modyfikowanych projektów.
+Odmawia pracy na innym HEAD, nie resetuje katalogów i nie usuwa cudzych zmian.
+Nie uruchamiaj go ponownie na już przygotowanym lokalnym drzewie RR.
+Po nałożeniu poprawek zwykły `repo sync` może odczepić lokalne gałęzie; przed
+aktualizacją zachowaj commity i świadomie przenieś je na nową bazę.
+
+Zestaw 15 wyeksportowanych patchy sprawdzono przez odtworzenie zmian w
+osobnych indeksach Git: drzewa wszystkich dziewięciu projektów odpowiadają
+bieżącym commitom. Sprawdzono też 38 plików XML urządzenia, istnienie 1655
+plików kopiowanych z BSP/vendor i obecność wszystkich 783 projektów. To
+kontrole statyczne, nie wynik kompilacji ani testu na urządzeniu.
+
+## Budowanie później przez użytkownika
+
+Poniższe komendy nie zostały wykonane podczas przygotowania źródeł:
+
+```bash
+cd /home/kejlo/xperia_XA1/source/resurrection-remix-Q-hinoki
+unset OUT_DIR OUT_DIR_COMMON_BASE JAVA_HOME ANDROID_JAVA_HOME
+source build/envsetup.sh
+lunch rr_hinoki-userdebug
+m -j4 bacon
+```
+
+Środowisko wybiera dołączony JDK. Nie używaj Javy 21 z drzewa Androida 17.
+`m` jest funkcją dostępną po `source build/envsetup.sh`; samo `bacon` nie jest
+poleceniem powłoki. Liczbę zadań można dobrać do RAM komputera. Wyniki trafią do
+`out/target/product/hinoki/`, a ZIP do `RROS-Q-8.7.3-*-hinoki-Unofficial.zip`.
+
+Nie wykonuj `clean`, `clobber`, `installclean` ani usuwania `out` w istniejących
+projektach. Nowe źródła RR mają oddzielny katalog wyjściowy.
+
+GApps nie dodano. Nie ustawiaj `WITH_GMS=true` bez osobno przygotowanego
+pasującego `vendor/partner_gms`: samo ustawienie zmiennej nie pobiera aplikacji.
+
+## Podpisywanie i instalacja
+
+Istniejący wrapper `../android_hinoki_manifest/tools/sign-release.sh` można
+zastosować po pierwszym udanym buildzie do target-files RR, podając jako
+pierwszy argument nowe drzewo RR. Zachowuje ramdisk i podpisuje OTA/APK własnymi
+kluczami. Nie kopiuj ani nie publikuj prywatnych kluczy z
+`/home/kejlo/xperia_XA1/signing-keys`. Podpisanie zmienionego systemu kluczem
+nie dodaje brakujących poprawek bezpieczeństwa.
+
+Pierwszą instalację RR należy traktować jako zmianę dystrybucji; wcześniej
+wykonaj kopię danych. Nie flashowano żadnych obrazów w ramach tego przygotowania.
+Magisk 28.1 był testowany na Lineage V27, nie na jeszcze niezbudowanym RR.
+
+## Ograniczenia odziedziczone z V27
+
+- Podstawowa ścieżka jednej karty SIM; pełny dual-SIM pozostaje niedokończony.
+- Stare sprzętowe dekodery wideo MTK są wyłączone; działają dekodery programowe.
+- Nagrywanie ekranu korzysta z programowego enkodera AVC.
+- NFC ograniczono do stabilnego NFC-A; Beam/P2P i równoległe rozszerzenia NXP
+  pozostają wyłączone w konfiguracji sprzętu.
+- SELinux pozostaje skonfigurowany jako enforcing. Poprawki V27 nie stanowią
+  potwierdzenia braku nowych odmów AVC po zmianie frameworka na RR.
+- Pobór energii i wszystkie funkcje trzeba sprawdzić ponownie na RR.
+
+## Źródła i autorzy
+
+- [Resurrection Remix manifest Q](https://github.com/ResurrectionRemix/platform_manifest/tree/Q)
+- [Manifest i poprawki V27 użytkownika](https://github.com/Kejlo523/android_hinoki_manifest)
+- [Kernel MT6757](https://github.com/Kejlo523/android_kernel_sony_mt6757)
+- LineageOS, Resurrection Remix, SonyMTKDev i autorzy zachowani w commitach
+  oraz nagłówkach źródeł.

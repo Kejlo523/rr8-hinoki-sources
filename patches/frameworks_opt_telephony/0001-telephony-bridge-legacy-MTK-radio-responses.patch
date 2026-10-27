@@ -1,0 +1,955 @@
+From 5006dfd14fa2a222f5114e6d2e5ba8c78592f2df Mon Sep 17 00:00:00 2001
+From: Kejlo523 <62387434+Kejlo523@users.noreply.github.com>
+Date: Thu, 27 Aug 2026 22:10:51 +0200
+Subject: [PATCH 1/2] telephony: bridge legacy MTK radio responses
+
+Change-Id: I8d6233cbb3fbbdb1ebbaf4e652366fc1c861c236
+(cherry picked from commit 5302ec93f6a8f517634cfcac3a13b7f3f6888533)
+---
+ .../telephony/GsmCdmaCallTracker.java         |  21 +
+ .../telephony/NetworkRegistrationManager.java |   3 +
+ .../com/android/internal/telephony/Phone.java |  14 +
+ .../com/android/internal/telephony/RIL.java   | 496 ++++++++++++++++++
+ .../internal/telephony/RadioResponse.java     |  22 +-
+ .../telephony/SubscriptionInfoUpdater.java    |  13 +
+ 6 files changed, 568 insertions(+), 1 deletion(-)
+
+diff --git a/src/java/com/android/internal/telephony/GsmCdmaCallTracker.java b/src/java/com/android/internal/telephony/GsmCdmaCallTracker.java
+index e73c95841f37c85daa1abee64db2246572d49621..f5a5871c2b8292c9340917f131ae8acb1b435677 100644
+--- a/src/java/com/android/internal/telephony/GsmCdmaCallTracker.java
++++ b/src/java/com/android/internal/telephony/GsmCdmaCallTracker.java
+@@ -70,6 +70,13 @@ public class GsmCdmaCallTracker extends CallTracker {
+     private static final int MAX_CONNECTIONS_CDMA = 8;
+     private static final int MAX_CONNECTIONS_PER_CALL_CDMA = 1; //only 1 connection allowed per call
+ 
++    // A few legacy MTK RILs emit CALL_STATE_CHANGED just before their CLCC
++    // cache contains a newly arriving call.  A single delayed poll prevents
++    // that race from turning an incoming call into an endless network-side
++    // connection attempt with no ringing UI.
++    private static final int EVENT_REPOLL_CALL_STATE = 100;
++    private static final long CALL_STATE_REPOLL_DELAY_MILLIS = 500;
++
+     //***** Instance Variables
+     @VisibleForTesting
+     public GsmCdmaConnection[] mConnections;
+@@ -1591,8 +1598,22 @@ public class GsmCdmaCallTracker extends CallTracker {
+             break;
+ 
+             case EVENT_REPOLL_AFTER_DELAY:
++                pollCallsWhenSafe();
++            break;
++
+             case EVENT_CALL_STATE_CHANGE:
+                 pollCallsWhenSafe();
++                if (SystemProperties.getBoolean("ro.vendor.radio.repoll_call_state", false)
++                        || SystemProperties.getBoolean(
++                                "persist.vendor.radio.repoll_call_state", false)) {
++                    removeMessages(EVENT_REPOLL_CALL_STATE);
++                    sendEmptyMessageDelayed(EVENT_REPOLL_CALL_STATE,
++                            CALL_STATE_REPOLL_DELAY_MILLIS);
++                }
++            break;
++
++            case EVENT_REPOLL_CALL_STATE:
++                pollCallsWhenSafe();
+             break;
+ 
+             case EVENT_RADIO_AVAILABLE:
+diff --git a/src/java/com/android/internal/telephony/NetworkRegistrationManager.java b/src/java/com/android/internal/telephony/NetworkRegistrationManager.java
+index 371f6484f587bacb3e1cfec82646058ab5c7f185..3eed24ead083a4b7b6775664c12fac3fe07e85ce 100644
+--- a/src/java/com/android/internal/telephony/NetworkRegistrationManager.java
++++ b/src/java/com/android/internal/telephony/NetworkRegistrationManager.java
+@@ -192,6 +192,9 @@ public class NetworkRegistrationManager extends Handler {
+                 mINetworkService.createNetworkServiceProvider(mPhone.getPhoneId());
+                 mINetworkService.registerForNetworkRegistrationInfoChanged(mPhone.getPhoneId(),
+                         new NetworkRegStateCallback());
++                // SST often polls before this bind completes ("Service not connected").
++                // Kick a fresh poll once the binder is actually usable.
++                mRegStateChangeRegistrants.notifyRegistrants();
+             } catch (RemoteException exception) {
+                 // Remote exception means that the binder already died.
+                 mDeathRecipient.binderDied();
+diff --git a/src/java/com/android/internal/telephony/Phone.java b/src/java/com/android/internal/telephony/Phone.java
+index 12c81ab707921e60ccec89541425781d24d0d92b..1c9043afe4ec7c380760011ece1875ccf9f4e65c 100644
+--- a/src/java/com/android/internal/telephony/Phone.java
++++ b/src/java/com/android/internal/telephony/Phone.java
+@@ -694,6 +694,20 @@ public abstract class Phone extends Handler implements PhoneInternalInterface {
+                 ar = (AsyncResult)msg.obj;
+                 if (ar.exception == null) {
+                     PhoneConstants.State state = getState();
++                    // The legacy MTK radio sends an incoming-call pre-alert through its
++                    // vendor HIDL channel and only emits CALL_RING after it is accepted.
++                    // Unlike the AOSP radio implementation, it does not emit a standard
++                    // CALL_STATE_CHANGED at that point. Polling here lets the call tracker
++                    // discover the now-visible incoming call and notify Telecom/Dialer.
++                    if (state == PhoneConstants.State.IDLE
++                            && (SystemProperties.getBoolean(
++                                    "ro.vendor.radio.repoll_call_state", false)
++                            || SystemProperties.getBoolean(
++                                    "persist.vendor.radio.repoll_call_state", false))
++                            && getCallTracker() != null) {
++                        Rlog.d(LOG_TAG, "Polling calls after legacy MTK CALL_RING");
++                        getCallTracker().pollCallsWhenSafe();
++                    }
+                     if ((!mDoesRilSendMultipleCallRing)
+                             && ((state == PhoneConstants.State.RINGING) ||
+                                     (state == PhoneConstants.State.IDLE))) {
+diff --git a/src/java/com/android/internal/telephony/RIL.java b/src/java/com/android/internal/telephony/RIL.java
+index 0ecb15d3ad6fd06e740c68bce17252133a17d5d2..3081c282b376554b59a1eb9034b2a6ea8a57e353 100644
+--- a/src/java/com/android/internal/telephony/RIL.java
++++ b/src/java/com/android/internal/telephony/RIL.java
+@@ -27,6 +27,7 @@ import android.hardware.radio.V1_0.CdmaBroadcastSmsConfigInfo;
+ import android.hardware.radio.V1_0.CdmaSmsAck;
+ import android.hardware.radio.V1_0.CdmaSmsMessage;
+ import android.hardware.radio.V1_0.CdmaSmsWriteArgs;
++import android.hardware.radio.V1_0.DataRegStateResult;
+ import android.hardware.radio.V1_0.DataProfileId;
+ import android.hardware.radio.V1_0.Dial;
+ import android.hardware.radio.V1_0.GsmBroadcastSmsConfigInfo;
+@@ -48,6 +49,7 @@ import android.hardware.radio.V1_0.SelectUiccSub;
+ import android.hardware.radio.V1_0.SimApdu;
+ import android.hardware.radio.V1_0.SmsWriteArgs;
+ import android.hardware.radio.V1_0.UusInfo;
++import android.hardware.radio.V1_0.VoiceRegStateResult;
+ import android.hardware.radio.V1_2.AccessNetwork;
+ import android.hardware.radio.V1_4.CarrierRestrictionsWithPriority;
+ import android.hardware.radio.V1_4.SimLockMultiSimPolicy;
+@@ -56,6 +58,8 @@ import android.net.ConnectivityManager;
+ import android.net.KeepalivePacketData;
+ import android.net.LinkAddress;
+ import android.net.LinkProperties;
++import android.net.LocalSocket;
++import android.net.LocalSocketAddress;
+ import android.net.NetworkUtils;
+ import android.os.AsyncResult;
+ import android.os.Build;
+@@ -111,6 +115,8 @@ import com.android.internal.telephony.cdma.CdmaSmsBroadcastConfigInfo;
+ import com.android.internal.telephony.gsm.SmsBroadcastConfigInfo;
+ import com.android.internal.telephony.metrics.TelephonyMetrics;
+ import com.android.internal.telephony.nano.TelephonyProto.SmsSession;
++import com.android.internal.telephony.uicc.IccCardApplicationStatus;
++import com.android.internal.telephony.uicc.IccCardStatus;
+ import com.android.internal.telephony.uicc.IccUtils;
+ 
+ import java.io.ByteArrayInputStream;
+@@ -121,12 +127,15 @@ import java.io.PrintWriter;
+ import java.net.Inet4Address;
+ import java.net.Inet6Address;
+ import java.net.InetAddress;
++import java.nio.charset.StandardCharsets;
+ import java.util.ArrayList;
+ import java.util.Arrays;
+ import java.util.HashSet;
+ import java.util.List;
+ import java.util.NoSuchElementException;
+ import java.util.Set;
++import java.util.concurrent.ExecutorService;
++import java.util.concurrent.Executors;
+ import java.util.concurrent.atomic.AtomicBoolean;
+ import java.util.concurrent.atomic.AtomicLong;
+ 
+@@ -155,6 +164,27 @@ public class RIL extends BaseCommands implements CommandsInterface {
+ 
+     private static final int DEFAULT_BLOCKING_MESSAGE_RESPONSE_TIMEOUT_MS = 2000;
+ 
++    // Registration commands sent while the XA1 modem reports SIM_BUSY can occupy a second
++    // MTK command proxy and prevent the vendor SIM poll from ever reaching READY.
++    // Keep framework registration polling away from the legacy MTK modem while its SIM
++    // application is coming up.  A query issued during SIM_BUSY wedges the command channel
++    // and the baseband enters exception recovery roughly 30 seconds later.
++    private static final long HINOKI_RADIO_SETTLE_MILLIS = 25000;
++    private static final long HINOKI_SIM_SETTLE_MILLIS = 20000;
++    private static final long HINOKI_DUPLICATE_RADIO_POWER_MILLIS = 2000;
++    private static final String HINOKI_ATCI_SOCKET = "adb_atci_socket";
++    private static final int HINOKI_ATCI_TIMEOUT_MILLIS = 2000;
++    private static final int HINOKI_ATCI_RETRY_COUNT = 4;
++
++    // The stock Oreo radio proxy deadlocks when Android sends the standard
++    // unsolicited-response filter request.  The stock ATCI daemon provides a
++    // safe route for the equivalent MTK command, so serialize it across both
++    // SIM RIL instances and keep all socket I/O off the phone handler thread.
++    private static final ExecutorService sHinokiAtciExecutor =
++            Executors.newSingleThreadExecutor();
++    private static final AtomicLong sHinokiAtciGeneration = new AtomicLong();
++    private static volatile Boolean sHinokiEcsqEnabled;
++
+     // Variables used to differentiate ack messages from request while calling clearWakeLock()
+     public static final int INVALID_WAKELOCK = -1;
+     public static final int FOR_WAKELOCK = 0;
+@@ -245,6 +275,9 @@ public class RIL extends BaseCommands implements CommandsInterface {
+     final AtomicLong mRadioProxyCookie = new AtomicLong(0);
+     final RadioProxyDeathRecipient mRadioProxyDeathRecipient;
+     final RilHandler mRilHandler;
++    private volatile long mHinokiRadioPowerOnElapsedRealtime;
++    private boolean mHinokiIccStatusRetryScheduled;
++    private boolean mHinokiRegistrationRetryScheduled;
+ 
+     //***** Events
+     static final int EVENT_WAKE_LOCK_TIMEOUT    = 2;
+@@ -676,6 +709,17 @@ public class RIL extends BaseCommands implements CommandsInterface {
+ 
+     @Override
+     public void getIccCardStatus(Message result) {
++        // The MT6757 RIL's GET_SIM_STATUS implementation polls AT+CPIN? every
++        // 200 ms for six seconds when the UICC still reports SIM_BUSY. Android
++        // asks for card status before RADIO_POWER and after every early EUSIM
++        // indication, which keeps proxy 1 occupied and prevents the vendor's
++        // own delayed SIM poll from observing READY. Expose only DETECTED in
++        // that short window, then hand card status back to the vendor RIL once
++        // the UICC/Trim Area startup sequence has completed.
++        if (shouldDeferHinokiIccCardStatus(result)) {
++            return;
++        }
++
+         IRadio radioProxy = getRadioProxy(result);
+         if (radioProxy != null) {
+             RILRequest rr = obtainRequest(RIL_REQUEST_GET_SIM_STATUS, result,
+@@ -691,6 +735,77 @@ public class RIL extends BaseCommands implements CommandsInterface {
+         }
+     }
+ 
++    private boolean shouldDeferHinokiIccCardStatus(Message result) {
++        if (!"hinoki".equals(Build.DEVICE)) {
++            return false;
++        }
++
++        long powerOn = mHinokiRadioPowerOnElapsedRealtime;
++        long remaining = powerOn == 0 ? HINOKI_SIM_SETTLE_MILLIS
++                : HINOKI_SIM_SETTLE_MILLIS
++                        - (SystemClock.elapsedRealtime() - powerOn);
++        boolean ready = powerOn != 0 && remaining <= 0;
++
++        // Suppress only Android's premature queries. Once the stock RIL has
++        // had time to initialise the UICC, use its authoritative card state.
++        if (ready) {
++            return false;
++        }
++
++        String iccid = SystemProperties.get(
++                mPhoneId == 0 ? "ril.iccid.sim1" : "ril.iccid.sim2", "");
++        boolean present = !TextUtils.isEmpty(iccid) && !"N/A".equalsIgnoreCase(iccid);
++        IccCardStatus status = new IccCardStatus();
++        status.mCardState = present
++                ? IccCardStatus.CardState.CARDSTATE_PRESENT
++                : IccCardStatus.CardState.CARDSTATE_ABSENT;
++        status.mUniversalPinState = ready && present
++                ? IccCardStatus.PinState.PINSTATE_DISABLED
++                : IccCardStatus.PinState.PINSTATE_UNKNOWN;
++        status.mGsmUmtsSubscriptionAppIndex = present ? 0 : -1;
++        status.mCdmaSubscriptionAppIndex = -1;
++        status.mImsSubscriptionAppIndex = -1;
++        status.physicalSlotIndex = mPhoneId;
++        status.iccid = present ? iccid : null;
++
++        if (present) {
++            IccCardApplicationStatus app = new IccCardApplicationStatus();
++            app.app_type = IccCardApplicationStatus.AppType.APPTYPE_USIM;
++            app.app_state = ready
++                    ? IccCardApplicationStatus.AppState.APPSTATE_READY
++                    : IccCardApplicationStatus.AppState.APPSTATE_DETECTED;
++            app.perso_substate = ready
++                    ? IccCardApplicationStatus.PersoSubState.PERSOSUBSTATE_READY
++                    : IccCardApplicationStatus.PersoSubState.PERSOSUBSTATE_UNKNOWN;
++            app.aid = "";
++            app.app_label = "USIM";
++            app.pin1_replaced = 0;
++            app.pin1 = ready
++                    ? IccCardStatus.PinState.PINSTATE_DISABLED
++                    : IccCardStatus.PinState.PINSTATE_UNKNOWN;
++            app.pin2 = IccCardStatus.PinState.PINSTATE_UNKNOWN;
++            status.mApplications = new IccCardApplicationStatus[] { app };
++        } else {
++            status.mApplications = new IccCardApplicationStatus[0];
++        }
++
++        riljLog("Synthesized hinoki ICC status; slot=" + mPhoneId
++                + " present=" + present + " ready=" + ready);
++        if (result != null) {
++            AsyncResult.forMessage(result, status, null);
++            result.sendToTarget();
++        }
++
++        if (!ready && powerOn != 0 && !mHinokiIccStatusRetryScheduled) {
++            mHinokiIccStatusRetryScheduled = true;
++            mRilHandler.postDelayed(() -> {
++                mHinokiIccStatusRetryScheduled = false;
++                mIccStatusChangedRegistrants.notifyRegistrants();
++            }, Math.max(remaining, 1));
++        }
++        return true;
++    }
++
+     @Override
+     public void getIccSlotsStatus(Message result) {
+         if (result != null) {
+@@ -1216,6 +1331,16 @@ public class RIL extends BaseCommands implements CommandsInterface {
+ 
+     @Override
+     public void getSignalStrength(Message result) {
++        // AT+ECSQ is routed to an inactive MTK mux DLCI on hinoki and blocks
++        // every subsequent registration request on that proxy queue.
++        if ("hinoki".equals(Build.DEVICE)) {
++            if (result != null) {
++                AsyncResult.forMessage(result, new SignalStrength(), null);
++                result.sendToTarget();
++            }
++            return;
++        }
++
+         IRadio radioProxy = getRadioProxy(result);
+         if (radioProxy != null) {
+             RILRequest rr = obtainRequest(RIL_REQUEST_SIGNAL_STRENGTH, result,
+@@ -1243,6 +1368,15 @@ public class RIL extends BaseCommands implements CommandsInterface {
+ 
+     @Override
+     public void getVoiceRegistrationState(Message result) {
++        if (shouldDeferHinokiRegistrationRequest()) {
++            VoiceRegStateResult response = new VoiceRegStateResult();
++            if (result != null) {
++                AsyncResult.forMessage(result, response, null);
++                result.sendToTarget();
++            }
++            return;
++        }
++
+         IRadio radioProxy = getRadioProxy(result);
+         if (radioProxy != null) {
+             RILRequest rr = obtainRequest(RIL_REQUEST_VOICE_REGISTRATION_STATE, result,
+@@ -1260,6 +1394,16 @@ public class RIL extends BaseCommands implements CommandsInterface {
+ 
+     @Override
+     public void getDataRegistrationState(Message result) {
++        if (shouldDeferHinokiRegistrationRequest()) {
++            DataRegStateResult response = new DataRegStateResult();
++            response.maxDataCalls = 1;
++            if (result != null) {
++                AsyncResult.forMessage(result, response, null);
++                result.sendToTarget();
++            }
++            return;
++        }
++
+         IRadio radioProxy = getRadioProxy(result);
+         if (radioProxy != null) {
+             RILRequest rr = obtainRequest(RIL_REQUEST_DATA_REGISTRATION_STATE, result,
+@@ -1277,6 +1421,17 @@ public class RIL extends BaseCommands implements CommandsInterface {
+ 
+     @Override
+     public void getOperator(Message result) {
++        // COPS/EOPS works during the first poll, but can stop answering while
++        // the modem is searching and then blocks CREG/CGREG on the same proxy.
++        // Registration URCs remain authoritative; keep this optional label empty.
++        if ("hinoki".equals(Build.DEVICE)) {
++            if (result != null) {
++                AsyncResult.forMessage(result, new String[] {"", "", ""}, null);
++                result.sendToTarget();
++            }
++            return;
++        }
++
+         IRadio radioProxy = getRadioProxy(result);
+         if (radioProxy != null) {
+             RILRequest rr = obtainRequest(RIL_REQUEST_OPERATOR, result,
+@@ -1295,8 +1450,52 @@ public class RIL extends BaseCommands implements CommandsInterface {
+     @UnsupportedAppUsage
+     @Override
+     public void setRadioPower(boolean on, Message result) {
++        // Both Android RIL instances control one legacy MT6757 modem. Powering
++        // slot 2 immediately after slot 1 changes EFUN from 1 to 3 while the
++        // first UICC is still busy; the next SIM1 AT+CPIN? then never receives
++        // a response. Slot 2 has no card on hinoki, so keep its framework RIL
++        // passive and let the capability slot own the modem power transition.
++        if ("hinoki".equals(Build.DEVICE) && mPhoneId > 0) {
++            if (on) {
++                mHinokiRadioPowerOnElapsedRealtime = SystemClock.elapsedRealtime();
++            }
++            riljLog("Ignoring secondary-slot RADIO_POWER on hinoki");
++            if (result != null) {
++                AsyncResult.forMessage(result, null, null);
++                result.sendToTarget();
++            }
++            return;
++        }
++
++        // rilConnected() unconditionally sends an initial power-off request.
++        // The stock XA1 RIL has already left the modem in CFUN=4 at this point,
++        // so avoid a redundant vendor transition, but let Android's subsequent
++        // power-on request reach the modem normally.
++        if ("hinoki".equals(Build.DEVICE) && !on) {
++            riljLog("Ignoring redundant initial RADIO_POWER off on hinoki");
++            if (result != null) {
++                AsyncResult.forMessage(result, null, null);
++                result.sendToTarget();
++            }
++            return;
++        }
++
+         IRadio radioProxy = getRadioProxy(result);
+         if (radioProxy != null) {
++            if ("hinoki".equals(Build.DEVICE) && on) {
++                long now = SystemClock.elapsedRealtime();
++                if (mHinokiRadioPowerOnElapsedRealtime != 0
++                        && now - mHinokiRadioPowerOnElapsedRealtime
++                                < HINOKI_DUPLICATE_RADIO_POWER_MILLIS) {
++                    riljLog("Ignoring duplicate RADIO_POWER on while hinoki is initializing");
++                    if (result != null) {
++                        AsyncResult.forMessage(result, null, null);
++                        result.sendToTarget();
++                    }
++                    return;
++                }
++                mHinokiRadioPowerOnElapsedRealtime = now;
++            }
+             RILRequest rr = obtainRequest(RIL_REQUEST_RADIO_POWER, result,
+                     mRILDefaultWorkSource);
+ 
+@@ -1313,6 +1512,29 @@ public class RIL extends BaseCommands implements CommandsInterface {
+         }
+     }
+ 
++    private boolean shouldDeferHinokiRegistrationRequest() {
++        if (!"hinoki".equals(Build.DEVICE) || mHinokiRadioPowerOnElapsedRealtime == 0) {
++            return false;
++        }
++
++        long remaining = HINOKI_RADIO_SETTLE_MILLIS
++                - (SystemClock.elapsedRealtime() - mHinokiRadioPowerOnElapsedRealtime);
++        if (remaining <= 0) {
++            return false;
++        }
++
++        riljLog("Deferring registration query while the hinoki modem initializes ("
++                + remaining + " ms)");
++        if (!mHinokiRegistrationRetryScheduled) {
++            mHinokiRegistrationRetryScheduled = true;
++            mRilHandler.postDelayed(() -> {
++                mHinokiRegistrationRetryScheduled = false;
++                mNetworkStateRegistrants.notifyRegistrants();
++            }, remaining);
++        }
++        return true;
++    }
++
+     @Override
+     public void sendDtmf(char c, Message result) {
+         IRadio radioProxy = getRadioProxy(result);
+@@ -1891,6 +2113,16 @@ public class RIL extends BaseCommands implements CommandsInterface {
+     @Override
+     public void queryFacilityLockForApp(String facility, String password, int serviceClass,
+                                         String appId, Message result) {
++        // The synthesized hinoki card status already reports an unlocked SIM.
++        // Vendor facility-lock polling otherwise occupies the dead proxy-1 DLCI.
++        if ("hinoki".equals(Build.DEVICE)) {
++            if (result != null) {
++                AsyncResult.forMessage(result, new int[] {0}, null);
++                result.sendToTarget();
++            }
++            return;
++        }
++
+         IRadio radioProxy = getRadioProxy(result);
+         if (radioProxy != null) {
+             RILRequest rr = obtainRequest(RIL_REQUEST_QUERY_FACILITY_LOCK, result,
+@@ -1974,6 +2206,13 @@ public class RIL extends BaseCommands implements CommandsInterface {
+ 
+     @Override
+     public void getNetworkSelectionMode(Message result) {
++        if ("hinoki".equals(Build.DEVICE)) {
++            if (result != null) {
++                AsyncResult.forMessage(result, new int[] {0}, null);
++                result.sendToTarget();
++            }
++            return;
++        }
+         IRadio radioProxy = getRadioProxy(result);
+         if (radioProxy != null) {
+             RILRequest rr = obtainRequest(RIL_REQUEST_QUERY_NETWORK_SELECTION_MODE, result,
+@@ -1991,6 +2230,13 @@ public class RIL extends BaseCommands implements CommandsInterface {
+ 
+     @Override
+     public void setNetworkSelectionModeAutomatic(Message result) {
++        if ("hinoki".equals(Build.DEVICE)) {
++            if (result != null) {
++                AsyncResult.forMessage(result, null, null);
++                result.sendToTarget();
++            }
++            return;
++        }
+         IRadio radioProxy = getRadioProxy(result);
+         if (radioProxy != null) {
+             RILRequest rr = obtainRequest(RIL_REQUEST_SET_NETWORK_SELECTION_AUTOMATIC, result,
+@@ -2253,6 +2499,14 @@ public class RIL extends BaseCommands implements CommandsInterface {
+ 
+     @Override
+     public void getBasebandVersion(Message result) {
++        if ("hinoki".equals(Build.DEVICE)) {
++            if (result != null) {
++                AsyncResult.forMessage(result,
++                        SystemProperties.get("gsm.version.baseband", "mt6757"), null);
++                result.sendToTarget();
++            }
++            return;
++        }
+         IRadio radioProxy = getRadioProxy(result);
+         if (radioProxy != null) {
+             RILRequest rr = obtainRequest(RIL_REQUEST_BASEBAND_VERSION, result,
+@@ -2613,6 +2867,15 @@ public class RIL extends BaseCommands implements CommandsInterface {
+ 
+     @Override
+     public void setPreferredNetworkType(@PrefNetworkMode int networkType , Message result) {
++        if ("hinoki".equals(Build.DEVICE)) {
++            mPreferredNetworkType = networkType;
++            mMetrics.writeSetPreferredNetworkType(mPhoneId, networkType);
++            if (result != null) {
++                AsyncResult.forMessage(result, null, null);
++                result.sendToTarget();
++            }
++            return;
++        }
+         IRadio radioProxy = getRadioProxy(result);
+         if (radioProxy != null) {
+             RILRequest rr = obtainRequest(RIL_REQUEST_SET_PREFERRED_NETWORK_TYPE, result,
+@@ -2907,6 +3170,16 @@ public class RIL extends BaseCommands implements CommandsInterface {
+ 
+     @Override
+     public void setTTYMode(int ttyMode, Message result) {
++        // The XA1 Oreo modem never completes AT+CTMCALL. Forwarding this
++        // optional TTY request permanently occupies the MTK command proxy and
++        // blocks RADIO_POWER, SIM and identity requests queued behind it.
++        if ("hinoki".equals(Build.DEVICE)) {
++            if (result != null) {
++                AsyncResult.forMessage(result, null, null);
++                result.sendToTarget();
++            }
++            return;
++        }
+         IRadio radioProxy = getRadioProxy(result);
+         if (radioProxy != null) {
+             RILRequest rr = obtainRequest(RIL_REQUEST_SET_TTY_MODE, result,
+@@ -3094,6 +3367,14 @@ public class RIL extends BaseCommands implements CommandsInterface {
+ 
+     @Override
+     public void getGsmBroadcastConfig(Message result) {
++        // AT+CSCB never returns on this mux and occupies READER_2 so CREG cannot run.
++        if ("hinoki".equals(Build.DEVICE)) {
++            if (result != null) {
++                AsyncResult.forMessage(result, new SmsBroadcastConfigInfo[0], null);
++                result.sendToTarget();
++            }
++            return;
++        }
+         IRadio radioProxy = getRadioProxy(result);
+         if (radioProxy != null) {
+             RILRequest rr = obtainRequest(RIL_REQUEST_GSM_GET_BROADCAST_CONFIG, result,
+@@ -3111,6 +3392,14 @@ public class RIL extends BaseCommands implements CommandsInterface {
+ 
+     @Override
+     public void setGsmBroadcastConfig(SmsBroadcastConfigInfo[] config, Message result) {
++        if ("hinoki".equals(Build.DEVICE)) {
++            riljLog("Ignoring GSM_SET_BROADCAST_CONFIG on hinoki");
++            if (result != null) {
++                AsyncResult.forMessage(result, null, null);
++                result.sendToTarget();
++            }
++            return;
++        }
+         IRadio radioProxy = getRadioProxy(result);
+         if (radioProxy != null) {
+             RILRequest rr = obtainRequest(RIL_REQUEST_GSM_SET_BROADCAST_CONFIG, result,
+@@ -3149,6 +3438,13 @@ public class RIL extends BaseCommands implements CommandsInterface {
+ 
+     @Override
+     public void setGsmBroadcastActivation(boolean activate, Message result) {
++        if ("hinoki".equals(Build.DEVICE)) {
++            if (result != null) {
++                AsyncResult.forMessage(result, null, null);
++                result.sendToTarget();
++            }
++            return;
++        }
+         IRadio radioProxy = getRadioProxy(result);
+         if (radioProxy != null) {
+             RILRequest rr = obtainRequest(RIL_REQUEST_GSM_BROADCAST_ACTIVATION, result,
+@@ -3186,6 +3482,13 @@ public class RIL extends BaseCommands implements CommandsInterface {
+ 
+     @Override
+     public void setCdmaBroadcastConfig(CdmaSmsBroadcastConfigInfo[] configs, Message result) {
++        if ("hinoki".equals(Build.DEVICE)) {
++            if (result != null) {
++                AsyncResult.forMessage(result, null, null);
++                result.sendToTarget();
++            }
++            return;
++        }
+         IRadio radioProxy = getRadioProxy(result);
+         if (radioProxy != null) {
+             RILRequest rr = obtainRequest(RIL_REQUEST_CDMA_SET_BROADCAST_CONFIG, result,
+@@ -3223,6 +3526,13 @@ public class RIL extends BaseCommands implements CommandsInterface {
+ 
+     @Override
+     public void setCdmaBroadcastActivation(boolean activate, Message result) {
++        if ("hinoki".equals(Build.DEVICE)) {
++            if (result != null) {
++                AsyncResult.forMessage(result, null, null);
++                result.sendToTarget();
++            }
++            return;
++        }
+         IRadio radioProxy = getRadioProxy(result);
+         if (radioProxy != null) {
+             RILRequest rr = obtainRequest(RIL_REQUEST_CDMA_BROADCAST_ACTIVATION, result,
+@@ -3307,6 +3617,18 @@ public class RIL extends BaseCommands implements CommandsInterface {
+ 
+     @Override
+     public void getDeviceIdentity(Message result) {
++        if ("hinoki".equals(Build.DEVICE)) {
++            if (result != null) {
++                // IMEI is already exported by the Oreo boot path; avoid the
++                // secondary identity AT sequence that races the mux.
++                String imei = SystemProperties.get("ril.imei.sim1",
++                        SystemProperties.get("persist.radio.device.imei", ""));
++                AsyncResult.forMessage(result,
++                        new String[] {imei, "", "", ""}, null);
++                result.sendToTarget();
++            }
++            return;
++        }
+         IRadio radioProxy = getRadioProxy(result);
+         if (radioProxy != null) {
+             RILRequest rr = obtainRequest(RIL_REQUEST_DEVICE_IDENTITY, result,
+@@ -3453,6 +3775,20 @@ public class RIL extends BaseCommands implements CommandsInterface {
+ 
+     @Override
+     public void getVoiceRadioTechnology(Message result) {
++        // Registration polling determines the real RAT. The Oreo synchronous
++        // request never completes on the command DLCI used by this kernel.
++        if ("hinoki".equals(Build.DEVICE)) {
++            if (result != null) {
++                // LTE makes GsmCdmaPhone switch GSM→CDMA on this world-phone
++                // stack (lteOnCdma). Stay on a pure GSM RAT until real CREG RAT
++                // arrives from the modem.
++                AsyncResult.forMessage(result,
++                        new int[] {TelephonyManager.NETWORK_TYPE_UMTS}, null);
++                result.sendToTarget();
++            }
++            return;
++        }
++
+         IRadio radioProxy = getRadioProxy(result);
+         if (radioProxy != null) {
+             RILRequest rr = obtainRequest(RIL_REQUEST_VOICE_RADIO_TECH, result,
+@@ -3470,6 +3806,14 @@ public class RIL extends BaseCommands implements CommandsInterface {
+ 
+     @Override
+     public void getCellInfoList(Message result, WorkSource workSource) {
++        // Avoid wedging a legacy AT channel on ECELL while basic registration is recovering.
++        if ("hinoki".equals(Build.DEVICE)) {
++            if (result != null) {
++                AsyncResult.forMessage(result, new ArrayList<CellInfo>(), null);
++                result.sendToTarget();
++            }
++            return;
++        }
+         workSource = getDeafultWorkSourceIfInvalid(workSource);
+         IRadio radioProxy = getRadioProxy(result);
+         if (radioProxy != null) {
+@@ -3542,6 +3886,16 @@ public class RIL extends BaseCommands implements CommandsInterface {
+ 
+     @Override
+     public void getImsRegistrationState(Message result) {
++        // IMS is disabled on this Oreo vendor stack. AT+CIREG? is assigned to
++        // an inactive DLCI and must not block basic CS/PS registration.
++        if ("hinoki".equals(Build.DEVICE)) {
++            if (result != null) {
++                AsyncResult.forMessage(result, new int[] {0, 0}, null);
++                result.sendToTarget();
++            }
++            return;
++        }
++
+         IRadio radioProxy = getRadioProxy(result);
+         if (radioProxy != null) {
+             RILRequest rr = obtainRequest(RIL_REQUEST_IMS_REGISTRATION_STATE, result,
+@@ -3659,6 +4013,19 @@ public class RIL extends BaseCommands implements CommandsInterface {
+ 
+     @Override
+     public void iccOpenLogicalChannel(String aid, int p2, Message result) {
++        // Carrier privilege / PKCS15 probes use AT+CGLA on this mux. The
++        // command never returns, fills PROXY_1, and the MD1 watchdog asserts.
++        // Fail instantly so basic CS/PS registration stays on a live modem.
++        if ("hinoki".equals(Build.DEVICE)) {
++            riljLog("Ignoring SIM_OPEN_CHANNEL on hinoki aid=" + aid);
++            if (result != null) {
++                AsyncResult.forMessage(result, null,
++                        CommandException.fromRilErrno(GENERIC_FAILURE));
++                result.sendToTarget();
++            }
++            return;
++        }
++
+         IRadio radioProxy = getRadioProxy(result);
+         if (radioProxy != null) {
+             RILRequest rr = obtainRequest(RIL_REQUEST_SIM_OPEN_CHANNEL, result,
+@@ -3683,6 +4050,14 @@ public class RIL extends BaseCommands implements CommandsInterface {
+ 
+     @Override
+     public void iccCloseLogicalChannel(int channel, Message result) {
++        if ("hinoki".equals(Build.DEVICE)) {
++            if (result != null) {
++                AsyncResult.forMessage(result, null, null);
++                result.sendToTarget();
++            }
++            return;
++        }
++
+         IRadio radioProxy = getRadioProxy(result);
+         if (radioProxy != null) {
+             RILRequest rr = obtainRequest(RIL_REQUEST_SIM_CLOSE_CHANNEL, result,
+@@ -3710,6 +4085,15 @@ public class RIL extends BaseCommands implements CommandsInterface {
+                     "Invalid channel in iccTransmitApduLogicalChannel: " + channel);
+         }
+ 
++        if ("hinoki".equals(Build.DEVICE)) {
++            if (result != null) {
++                AsyncResult.forMessage(result, null,
++                        CommandException.fromRilErrno(GENERIC_FAILURE));
++                result.sendToTarget();
++            }
++            return;
++        }
++
+         IRadio radioProxy = getRadioProxy(result);
+         if (radioProxy != null) {
+             RILRequest rr = obtainRequest(RIL_REQUEST_SIM_TRANSMIT_APDU_CHANNEL, result,
+@@ -3877,6 +4261,13 @@ public class RIL extends BaseCommands implements CommandsInterface {
+ 
+     @Override
+     public void getHardwareConfig(Message result) {
++        if ("hinoki".equals(Build.DEVICE)) {
++            if (result != null) {
++                AsyncResult.forMessage(result, new ArrayList<HardwareConfig>(), null);
++                result.sendToTarget();
++            }
++            return;
++        }
+         IRadio radioProxy = getRadioProxy(result);
+         if (radioProxy != null) {
+             RILRequest rr = obtainRequest(RIL_REQUEST_GET_HARDWARE_CONFIG, result,
+@@ -3998,6 +4389,22 @@ public class RIL extends BaseCommands implements CommandsInterface {
+ 
+     @Override
+     public void getRadioCapability(Message response) {
++        // The modem already publishes this capability as an unsolicited event.
++        // Its synchronous EPSB query is routed to the inactive command DLCI.
++        if ("hinoki".equals(Build.DEVICE)) {
++            if (response != null) {
++                // GSM/WCDMA/LTE only — a CDMA-capable RAF makes PhoneFactory keep
++                // a CDMA phone object and skips the CS/PS registration path we need.
++                int raf = RadioAccessFamily.getRafFromNetworkType(
++                        RILConstants.NETWORK_MODE_LTE_GSM_WCDMA);
++                RadioCapability rc = new RadioCapability(mPhoneId, 0, 0,
++                        raf, "modem_sys1_ps1", 1);
++                AsyncResult.forMessage(response, rc, null);
++                response.sendToTarget();
++            }
++            return;
++        }
++
+         IRadio radioProxy = getRadioProxy(response);
+         if (radioProxy != null) {
+             RILRequest rr = obtainRequest(RIL_REQUEST_GET_RADIO_CAPABILITY, response,
+@@ -4046,6 +4453,18 @@ public class RIL extends BaseCommands implements CommandsInterface {
+ 
+     @Override
+     public void startLceService(int reportIntervalMs, boolean pullMode, Message result) {
++        // Link Capacity Estimation is optional. This modem does not answer
++        // AT+ELCE and would leave its data command proxy blocked forever.
++        if ("hinoki".equals(Build.DEVICE)) {
++            if (result != null) {
++                ArrayList<Integer> status = new ArrayList<>();
++                status.add(0);
++                status.add(0);
++                AsyncResult.forMessage(result, status, null);
++                result.sendToTarget();
++            }
++            return;
++        }
+         IRadio radioProxy = getRadioProxy(result);
+ 
+         if (mRadioVersion.greaterOrEqual(RADIO_HAL_VERSION_1_2)) {
+@@ -4128,6 +4547,18 @@ public class RIL extends BaseCommands implements CommandsInterface {
+ 
+     @Override
+     public void getModemActivityInfo(Message result, WorkSource workSource) {
++        // The MT6757 modem does not answer AT+ERFTX=11 on this mux. Letting the
++        // request reach the Oreo RIL blocks PROXY_1 and eventually asserts MD1.
++        if ("hinoki".equals(Build.DEVICE)) {
++            if (result != null) {
++                AsyncResult.forMessage(result, new ModemActivityInfo(
++                        SystemClock.elapsedRealtime(), 0, 0,
++                        new int[ModemActivityInfo.TX_POWER_LEVELS], 0, 0), null);
++                result.sendToTarget();
++            }
++            return;
++        }
++
+         workSource = getDeafultWorkSourceIfInvalid(workSource);
+         IRadio radioProxy = getRadioProxy(result);
+         if (radioProxy != null) {
+@@ -4315,6 +4746,15 @@ public class RIL extends BaseCommands implements CommandsInterface {
+     @Override
+     public void sendDeviceState(int stateType, boolean state,
+                                 Message result) {
++        // Optional power-hinting; the Oreo proxy queues these behind the
++        // broken unsolicited-filter AT path on hinoki.
++        if ("hinoki".equals(Build.DEVICE)) {
++            if (result != null) {
++                AsyncResult.forMessage(result, null, null);
++                result.sendToTarget();
++            }
++            return;
++        }
+         IRadio radioProxy = getRadioProxy(result);
+         if (radioProxy != null) {
+             RILRequest rr = obtainRequest(RIL_REQUEST_SEND_DEVICE_STATE, result,
+@@ -4335,6 +4775,16 @@ public class RIL extends BaseCommands implements CommandsInterface {
+ 
+     @Override
+     public void setUnsolResponseFilter(int filter, Message result) {
++        // Sending the standard request through the Oreo proxy wedges its mux
++        // and eventually asserts MD1.  Use the stock ATCI daemon instead.
++        if ("hinoki".equals(Build.DEVICE)) {
++            setHinokiSignalReportsEnabled((filter & IndicationFilter.SIGNAL_STRENGTH) != 0);
++            if (result != null) {
++                AsyncResult.forMessage(result, null, null);
++                result.sendToTarget();
++            }
++            return;
++        }
+         IRadio radioProxy = getRadioProxy(result);
+         if (radioProxy != null) {
+             RILRequest rr = obtainRequest(RIL_REQUEST_SET_UNSOLICITED_RESPONSE_FILTER, result,
+@@ -4364,6 +4814,52 @@ public class RIL extends BaseCommands implements CommandsInterface {
+         }
+     }
+ 
++    private void setHinokiSignalReportsEnabled(boolean enabled) {
++        if (sHinokiEcsqEnabled != null && sHinokiEcsqEnabled == enabled) {
++            return;
++        }
++
++        final long generation = sHinokiAtciGeneration.incrementAndGet();
++        sHinokiAtciExecutor.execute(() -> {
++            for (int attempt = 0; attempt < HINOKI_ATCI_RETRY_COUNT; attempt++) {
++                if (generation != sHinokiAtciGeneration.get()) {
++                    return;
++                }
++
++                try (LocalSocket socket = new LocalSocket()) {
++                    socket.connect(new LocalSocketAddress(HINOKI_ATCI_SOCKET,
++                            LocalSocketAddress.Namespace.RESERVED));
++                    socket.setSoTimeout(HINOKI_ATCI_TIMEOUT_MILLIS);
++
++                    String command = enabled ? "AT+ECSQ=1\r\n" : "AT+ECSQ=0\r\n";
++                    socket.getOutputStream().write(command.getBytes(StandardCharsets.US_ASCII));
++                    socket.getOutputStream().flush();
++
++                    byte[] response = new byte[64];
++                    int count = socket.getInputStream().read(response);
++                    String responseText = count > 0
++                            ? new String(response, 0, count, StandardCharsets.US_ASCII) : "";
++                    if (!responseText.contains("OK")) {
++                        throw new IOException("ATCI rejected ECSQ command: "
++                                + responseText.trim());
++                    }
++
++                    if (generation == sHinokiAtciGeneration.get()) {
++                        sHinokiEcsqEnabled = enabled;
++                        riljLog("Hinoki signal reports " + (enabled ? "enabled" : "disabled"));
++                    }
++                    return;
++                } catch (IOException e) {
++                    if (attempt == HINOKI_ATCI_RETRY_COUNT - 1) {
++                        riljLoge("Unable to change Hinoki signal reports", e);
++                        return;
++                    }
++                    SystemClock.sleep(250L << attempt);
++                }
++            }
++        });
++    }
++
+     @Override
+     public void setSignalStrengthReportingCriteria(int hysteresisMs, int hysteresisDb,
+             int[] thresholdsDbm, int ran, Message result) {
+diff --git a/src/java/com/android/internal/telephony/RadioResponse.java b/src/java/com/android/internal/telephony/RadioResponse.java
+index 97fe3dc13a5ba545aa889ad188d74548181ebc2c..18f1234d867b1ca9047f0f7f6334d8e263a2f4ba 100644
+--- a/src/java/com/android/internal/telephony/RadioResponse.java
++++ b/src/java/com/android/internal/telephony/RadioResponse.java
+@@ -37,6 +37,7 @@ import android.hardware.radio.V1_4.CarrierRestrictionsWithPriority;
+ import android.hardware.radio.V1_4.IRadioResponse;
+ import android.hardware.radio.V1_4.SimLockMultiSimPolicy;
+ import android.os.AsyncResult;
++import android.os.Build;
+ import android.os.Message;
+ import android.os.SystemClock;
+ import android.service.carrier.CarrierIdentifier;
+@@ -396,7 +397,26 @@ public class RadioResponse extends IRadioResponse.Stub {
+      * @param responseInfo Response info struct containing response type, serial no. and error
+      */
+     public void setRadioPowerResponse(RadioResponseInfo responseInfo) {
+-        responseVoid(responseInfo);
++        RILRequest rr = mRil.processResponse(responseInfo);
++
++        if (rr != null) {
++            Object ret = null;
++            if (responseInfo.error == RadioError.NONE) {
++                // The legacy MT6757 proxy sends its initial radio-state indication to
++                // radioService[1] even though Android registered the only active RIL as
++                // slot 0.  The modem accepts RADIO_POWER, but the framework otherwise
++                // remains RADIO_POWER_UNAVAILABLE forever after a clean data wipe.
++                // Slot 0 is the sole modem-power owner on hinoki; power-off requests are
++                // filtered in RIL, so a successful vendor response here always means ON.
++                if ("hinoki".equals(Build.DEVICE) && mRil.mPhoneId == 0) {
++                    mRil.riljLog("Synthesizing RADIO_POWER_ON after vendor response on hinoki");
++                    mRil.setRadioState(TelephonyManager.RADIO_POWER_ON,
++                            true /* forceNotifyRegistrants */);
++                }
++                sendMessageResponse(rr.mResult, ret);
++            }
++            mRil.processResponseDone(rr, responseInfo, ret);
++        }
+     }
+ 
+     /**
+diff --git a/src/java/com/android/internal/telephony/SubscriptionInfoUpdater.java b/src/java/com/android/internal/telephony/SubscriptionInfoUpdater.java
+index 583b87c9b5dcc9067fa6605928b2b9146281e151..1c426fce8de5afab304bfa6cce1d0f28ccee6625 100644
+--- a/src/java/com/android/internal/telephony/SubscriptionInfoUpdater.java
++++ b/src/java/com/android/internal/telephony/SubscriptionInfoUpdater.java
+@@ -36,6 +36,7 @@ import android.os.ParcelUuid;
+ import android.os.PersistableBundle;
+ import android.os.RemoteException;
+ import android.os.ServiceManager;
++import android.os.SystemProperties;
+ import android.preference.PreferenceManager;
+ import android.provider.Settings;
+ import android.provider.Settings.Global;
+@@ -294,6 +295,18 @@ public class SubscriptionInfoUpdater extends Handler {
+                 break;
+ 
+             case EVENT_SIM_READY:
++                // On hinoki the legacy MTK SIM I/O queue can stall before
++                // SIMRecords finishes loading. The modem nevertheless exports
++                // a valid ICCID, so publish the physical subscription as soon
++                // as the card reaches READY instead of leaving slot 0 empty.
++                if ("hinoki".equals(SystemProperties.get("ro.product.device"))) {
++                    String property = msg.arg1 == 0 ? "ril.iccid.sim1" : "ril.iccid.sim2";
++                    String iccid = SystemProperties.get(property, "");
++                    if (!TextUtils.isEmpty(iccid) && !"N/A".equalsIgnoreCase(iccid)) {
++                        mIccId[msg.arg1] = IccUtils.stripTrailingFs(iccid);
++                        updateSubscriptionInfoByIccId(msg.arg1, false);
++                    }
++                }
+                 cardIds.add(getCardIdFromPhoneId(msg.arg1));
+                 updateEmbeddedSubscriptions(cardIds, (hasChanges) -> {
+                     if (hasChanges) {

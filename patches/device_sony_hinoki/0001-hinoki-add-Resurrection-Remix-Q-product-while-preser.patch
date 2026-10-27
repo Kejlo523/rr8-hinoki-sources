@@ -1,0 +1,83 @@
+From 68315adee722d5698db8e86d9adbcd4e0f74a219 Mon Sep 17 00:00:00 2001
+From: Kejlo <62387434+Kejlo523@users.noreply.github.com>
+Date: Tue, 27 Oct 2026 19:38:55 +0100
+Subject: [PATCH] hinoki: add Resurrection Remix Q product while preserving V27
+ BSP
+
+---
+ AndroidProducts.mk |  8 ++++----
+ rr_hinoki.mk       | 35 +++++++++++++++++++++++++++++++++++
+ vendorsetup.sh     |  2 +-
+ 3 files changed, 40 insertions(+), 5 deletions(-)
+ create mode 100644 rr_hinoki.mk
+
+diff --git a/AndroidProducts.mk b/AndroidProducts.mk
+index 0ce865b9b87ad0753ecaf7dd91b1cd3b5aeb51df..b139d9ccc211577b982abd3e3f722c999b7a36e3 100644
+--- a/AndroidProducts.mk
++++ b/AndroidProducts.mk
+@@ -15,9 +15,9 @@
+ #
+ 
+ PRODUCT_MAKEFILES := \
+-    $(LOCAL_DIR)/lineage_hinoki.mk
++    $(LOCAL_DIR)/rr_hinoki.mk
+ 
+ COMMON_LUNCH_CHOICES := \
+-    lineage_hinoki-user \
+-    lineage_hinoki-userdebug \
+-    lineage_hinoki-eng
++    rr_hinoki-user \
++    rr_hinoki-userdebug \
++    rr_hinoki-eng
+diff --git a/rr_hinoki.mk b/rr_hinoki.mk
+new file mode 100644
+index 0000000000000000000000000000000000000000..0676b605e459a99264e33447e47525546dae99f1
+--- /dev/null
++++ b/rr_hinoki.mk
+@@ -0,0 +1,35 @@
++#
++# Copyright 2020 The LineageOS Project.
++# Copyright 2026 Kejlo
++# SPDX-License-Identifier: Apache-2.0
++#
++
++# Keep the working G3112 hardware/BSP configuration from the Lineage V27 port.
++$(call inherit-product, $(SRC_TARGET_DIR)/product/core_64_bit.mk)
++$(call inherit-product, $(SRC_TARGET_DIR)/product/full_base.mk)
++$(call inherit-product, device/sony/hinoki/device.mk)
++$(call inherit-product, device/sony/mt6757-common/mt6757.mk)
++
++# Resurrection Remix supplies its own settings, recents, themes and framework.
++$(call inherit-product, vendor/rr/config/common_full_phone.mk)
++$(call inherit-product, $(SRC_TARGET_DIR)/product/languages_full.mk)
++
++# Oreo MTK private-driver callbacks are incompatible with cross-DSO CFI.
++PRODUCT_CFI_INCLUDE_PATHS := $(filter-out external/wpa_supplicant_8,$(PRODUCT_CFI_INCLUDE_PATHS))
++
++BOARD_VENDOR := SONY
++PRODUCT_DEVICE := hinoki
++PRODUCT_NAME := rr_hinoki
++PRODUCT_BRAND := SONY
++PRODUCT_MODEL := XPERIA XA1
++PRODUCT_MANUFACTURER := SONY
++PRODUCT_GMS_CLIENTID_BASE := android-sony
++RR_BUILDTYPE := Unofficial
++RR_BUILD := hinoki
++
++# Preserve the tested firmware identity and partition/boot assumptions.
++PRODUCT_BUILD_PROP_OVERRIDES += \
++    PRODUCT_NAME=hinoki \
++    PRIVATE_BUILD_DESC="G3112-user 8.0.0 48.1.A.2.112 1877064199 release-keys"
++
++BUILD_FINGERPRINT := "Sony/G3112/G3112:8.0.0/48.1.A.2.112/1877064199:user/release-keys"
+diff --git a/vendorsetup.sh b/vendorsetup.sh
+index a725d3a7da96e7a053a4efb3602b8168ea253ab7..05d6aadcc3f8694f3af46b4792f24ad5811c7e31 100644
+--- a/vendorsetup.sh
++++ b/vendorsetup.sh
+@@ -21,5 +21,5 @@
+ # function: add_lunch_combo generic-eng
+ 
+ for var in eng user userdebug; do
+-  add_lunch_combo lineage_hinoki-$var
++  add_lunch_combo rr_hinoki-$var
+ done

@@ -1,0 +1,27 @@
+From 1c590b280a9a2044bde980edef982d7edb3364e3 Mon Sep 17 00:00:00 2001
+From: Kejlo <62387434+Kejlo523@users.noreply.github.com>
+Date: Tue, 27 Oct 2026 19:38:55 +0100
+Subject: [PATCH] kernel: allow hinoki builds without loadable modules
+
+Port of Kejlo523/android_vendor_lineage commit 774aba4bd7021da80291d99b40279881f6117630.
+---
+ build/tasks/kernel.mk | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/build/tasks/kernel.mk b/build/tasks/kernel.mk
+index bdf264d44ad423e33f06db4ffbbdc3446371d7fe..c7c6a24377052d83952c81a8cf71e9faa70c3b7c 100644
+--- a/build/tasks/kernel.mk
++++ b/build/tasks/kernel.mk
+@@ -279,7 +279,11 @@ $(TARGET_PREBUILT_INT_KERNEL): $(KERNEL_CONFIG) $(DEPMOD) $(DTC)
+ 				$(eval p := $(subst :,$(space),$(s))) \
+ 				; mv $$(find $$kernel_modules_dir -name $(word 1,$(p))) $$kernel_modules_dir/$(word 2,$(p))); \
+ 			modules=$$(find $$kernel_modules_dir -type f -name '*.ko'); \
+-			($(call build-image-kernel-modules,$$modules,$(KERNEL_MODULES_OUT),$(KERNEL_MODULE_MOUNTPOINT)/,$(KERNEL_DEPMOD_STAGING_DIR))); \
++			if [ -n "$$modules" ]; then \
++				($(call build-image-kernel-modules,$$modules,$(KERNEL_MODULES_OUT),$(KERNEL_MODULE_MOUNTPOINT)/,$(KERNEL_DEPMOD_STAGING_DIR))); \
++			else \
++				echo "No loadable kernel modules were produced; skipping module staging"; \
++			fi; \
+ 		fi
+ 
+ .PHONY: kerneltags

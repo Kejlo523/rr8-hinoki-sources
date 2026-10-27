@@ -1,0 +1,136 @@
+From 6238383f97c748cebbbd65fe87b00b65f48117f0 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?J=C4=99drek?= <62387434+Kejlo523@users.noreply.github.com>
+Date: Mon, 21 Sep 2026 22:42:01 +0200
+Subject: [PATCH 2/2] build: support boot ramdisk with system-as-root
+
+(cherry picked from commit 052bd7e368459334187d9d0af469c819bffb7eb2)
+---
+ core/Makefile                           |  9 +++---
+ core/board_config.mk                    |  2 ++
+ tools/releasetools/common.py            |  6 ++--
+ tools/releasetools/test_boot_ramdisk.py | 41 +++++++++++++++++++++++++
+ 4 files changed, 51 insertions(+), 7 deletions(-)
+ create mode 100644 tools/releasetools/test_boot_ramdisk.py
+
+diff --git a/core/Makefile b/core/Makefile
+index b7c37dc3f3bd802f023a721a3ecb65032e69ad42..f7fb0a6c7faf4db53de715ca7866d9d93a1bab5c 100644
+--- a/core/Makefile
++++ b/core/Makefile
+@@ -953,7 +953,7 @@ ifdef BOARD_INCLUDE_DTB_IN_BOOTIMG
+   INTERNAL_BOOTIMAGE_ARGS += --dtb $(INSTALLED_DTBIMAGE_TARGET)
+ endif
+ 
+-ifneq ($(BOARD_BUILD_SYSTEM_ROOT_IMAGE),true)
++ifneq ($(BOARD_BUILD_SYSTEM_ROOT_IMAGE)$(filter true,$(BOARD_BOOT_RAMDISK_WITH_SYSTEM_ROOT)),true)
+ INTERNAL_BOOTIMAGE_ARGS += --ramdisk $(INSTALLED_RAMDISK_TARGET)
+ endif
+ 
+@@ -3915,7 +3915,7 @@ endif # INSTALLED_RECOVERYIMAGE_TARGET defined or BOARD_USES_RECOVERY_AS_BOOT is
+ 	    $(TARGET_ROOT_OUT),$(zip_root)/ROOT)
+ 	@# If we are using recovery as boot, this is already done when processing recovery.
+ ifneq ($(BOARD_USES_RECOVERY_AS_BOOT),true)
+-ifneq ($(BOARD_BUILD_SYSTEM_ROOT_IMAGE),true)
++ifneq ($(BOARD_BUILD_SYSTEM_ROOT_IMAGE)$(filter true,$(BOARD_BOOT_RAMDISK_WITH_SYSTEM_ROOT)),true)
+ 	$(hide) $(call package_files-copy-root, \
+ 	    $(TARGET_RAMDISK_OUT),$(zip_root)/BOOT/RAMDISK)
+ endif
+@@ -4042,6 +4042,7 @@ ifdef PRODUCT_EXTRA_RECOVERY_KEYS
+ 	$(hide) echo "extra_recovery_keys=$(PRODUCT_EXTRA_RECOVERY_KEYS)" >> $(zip_root)/META/misc_info.txt
+ endif
+ 	$(hide) echo 'mkbootimg_args=$(BOARD_MKBOOTIMG_ARGS)' >> $(zip_root)/META/misc_info.txt
++	$(hide) echo 'boot_ramdisk_with_system_root=$(BOARD_BOOT_RAMDISK_WITH_SYSTEM_ROOT)' >> $(zip_root)/META/misc_info.txt
+ 	$(hide) echo 'mkbootimg_version_args=$(INTERNAL_MKBOOTIMG_VERSION_ARGS)' >> $(zip_root)/META/misc_info.txt
+ 	$(hide) echo "use_set_metadata=1" >> $(zip_root)/META/misc_info.txt
+ 	$(hide) echo "multistage_support=1" >> $(zip_root)/META/misc_info.txt
+@@ -4214,8 +4215,8 @@ ifeq ($(BOARD_USES_RECOVERY_AS_BOOT),true)
+ 	@# BOOT/RAMDISK exists and contains the ramdisk for recovery if using BOARD_USES_RECOVERY_AS_BOOT.
+ 	$(hide) $(call fs_config,$(zip_root)/BOOT/RAMDISK,) > $(zip_root)/META/boot_filesystem_config.txt
+ endif
+-ifneq ($(BOARD_BUILD_SYSTEM_ROOT_IMAGE),true)
+-	@# BOOT/RAMDISK also exists and contains the first stage ramdisk if not using BOARD_BUILD_SYSTEM_ROOT_IMAGE.
++ifneq ($(BOARD_BUILD_SYSTEM_ROOT_IMAGE)$(filter true,$(BOARD_BOOT_RAMDISK_WITH_SYSTEM_ROOT)),true)
++	@# Also save first-stage ramdisk metadata for boards retaining the SAR layout.
+ 	$(hide) $(call fs_config,$(zip_root)/BOOT/RAMDISK,) > $(zip_root)/META/boot_filesystem_config.txt
+ endif
+ ifneq ($(INSTALLED_RECOVERYIMAGE_TARGET),)
+diff --git a/core/board_config.mk b/core/board_config.mk
+index 333653cc52717f9f76aabab66446d7364b29abcf..2bd5c16e45166d3ad07f16f4b331157c8bb04031 100644
+--- a/core/board_config.mk
++++ b/core/board_config.mk
+@@ -233,8 +233,10 @@ endif
+ ###########################################
+ # Now we can substitute with the real value of TARGET_COPY_OUT_RAMDISK
+ ifeq ($(BOARD_BUILD_SYSTEM_ROOT_IMAGE),true)
++ifneq ($(BOARD_BOOT_RAMDISK_WITH_SYSTEM_ROOT),true)
+ TARGET_COPY_OUT_RAMDISK := $(TARGET_COPY_OUT_ROOT)
+ endif
++endif
+ 
+ ###########################################
+ # Now we can substitute with the real value of TARGET_COPY_OUT_DEBUG_RAMDISK
+diff --git a/tools/releasetools/common.py b/tools/releasetools/common.py
+index d184cbd406f2260bb9c5c9fe0a0a40a95fcb5602..4856c0400fe20bae686c5e64538e7ea1da66b03c 100644
+--- a/tools/releasetools/common.py
++++ b/tools/releasetools/common.py
+@@ -780,11 +780,11 @@ def GetBootableImage(name, prebuilt_name, unpack_dir, tree_subdir,
+   if info_dict is None:
+     info_dict = OPTIONS.info_dict
+ 
+-  # With system_root_image == "true", we don't pack ramdisk into the boot image.
+-  # Unless "recovery_as_boot" is specified, in which case we carry the ramdisk
+-  # for recovery.
++  # Legacy SAR has no boot ramdisk. A separate first-stage ramdisk may be
++  # explicitly enabled while retaining the SAR system partition layout.
+   has_ramdisk = (info_dict.get("system_root_image") != "true" or
+                  prebuilt_name != "boot.img" or
++                 info_dict.get("boot_ramdisk_with_system_root") == "true" or
+                  info_dict.get("recovery_as_boot") == "true")
+ 
+   fs_config = "META/" + tree_subdir.lower() + "_filesystem_config.txt"
+diff --git a/tools/releasetools/test_boot_ramdisk.py b/tools/releasetools/test_boot_ramdisk.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..4cc41c7ad73c0d983453adaf7017bed73797dff1
+--- /dev/null
++++ b/tools/releasetools/test_boot_ramdisk.py
+@@ -0,0 +1,41 @@
++"""Regressions for boot reconstruction during release signing of SAR builds."""
++
++import os
++import struct
++import tempfile
++import unittest
++
++import common
++
++
++class BootRamdiskTest(unittest.TestCase):
++  def build_image(self, info, partition="boot"):
++    with tempfile.TemporaryDirectory() as root:
++      boot = os.path.join(root, partition.upper())
++      ramdisk = os.path.join(boot, "RAMDISK")
++      os.makedirs(ramdisk)
++      with open(os.path.join(boot, "kernel"), "wb") as output:
++        output.write(b"test kernel")
++      with open(os.path.join(ramdisk, "init"), "wb") as output:
++        output.write(b"test first-stage init")
++      image = common.GetBootableImage(partition + ".img", partition + ".img",
++                                     root, partition.upper(), info)
++      self.assertEqual(b"ANDROID!", image.data[:8])
++      return struct.unpack_from("<I", image.data, 16)[0]
++
++  def test_legacy_sar_stays_ramdiskless(self):
++    self.assertEqual(0, self.build_image({"system_root_image": "true"}))
++
++  def test_sar_first_stage_survives_reconstruction(self):
++    self.assertGreater(self.build_image({"system_root_image": "true",
++                                        "boot_ramdisk_with_system_root": "true"}), 0)
++
++  def test_standard_boot_still_has_ramdisk(self):
++    self.assertGreater(self.build_image({"system_root_image": "false"}), 0)
++
++  def test_recovery_still_has_ramdisk(self):
++    self.assertGreater(self.build_image({"system_root_image": "true"}, "recovery"), 0)
++
++
++if __name__ == "__main__":
++  unittest.main()

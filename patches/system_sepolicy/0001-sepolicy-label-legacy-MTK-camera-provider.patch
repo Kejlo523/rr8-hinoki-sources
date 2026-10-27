@@ -1,0 +1,27 @@
+From 8a568ea1075029068baacc1ec8ae2b8bdb2db2a6 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?J=C4=99drek?= <62387434+Kejlo523@users.noreply.github.com>
+Date: Thu, 17 Sep 2026 22:47:47 +0200
+Subject: [PATCH] sepolicy: label legacy MTK camera provider
+
+Change-Id: I4190da607daf38c5bd6af7ebc583a439eee5f9c4
+(cherry picked from commit 3fa3d1e4472171c6ecc32342e27e318438ad6f77)
+---
+ vendor/file_contexts | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/vendor/file_contexts b/vendor/file_contexts
+index 6c6fc527df97abae8cf92165a9f2d012ba39adc5..4c2d6737d7b897b554fbe02e86a1070d5e108b4f 100644
+--- a/vendor/file_contexts
++++ b/vendor/file_contexts
+@@ -12,7 +12,10 @@
+ /(vendor|system/vendor)/bin/hw/android\.hardware\.boot@1\.[0-9]+-service      u:object_r:hal_bootctl_default_exec:s0
+ /(vendor|system/vendor)/bin/hw/android\.hardware\.broadcastradio@\d+\.\d+-service u:object_r:hal_broadcastradio_default_exec:s0
+ /(vendor|system/vendor)/bin/hw/android\.hardware\.camera\.provider@2\.[0-9]+-service_64       u:object_r:hal_camera_default_exec:s0
+-/(vendor|system/vendor)/bin/hw/android\.hardware\.camera\.provider@2\.[0-9]+-service          u:object_r:hal_camera_default_exec:s0
++# Xperia XA1's provider loads the legacy MTK camera stack and must use its
++# complete vendor domain.  The generic rule wins over device file_contexts
++# during image creation, so label the provider here.
++/(vendor|system/vendor)/bin/hw/android\.hardware\.camera\.provider@2\.[0-9]+-service          u:object_r:mtk_hal_camera_exec:s0
+ /(vendor|system/vendor)/bin/hw/android\.hardware\.camera\.provider@2\.[0-9]+-service-lazy_64  u:object_r:hal_camera_default_exec:s0
+ /(vendor|system/vendor)/bin/hw/android\.hardware\.camera\.provider@2\.[0-9]+-service-lazy     u:object_r:hal_camera_default_exec:s0
+ /(vendor|system/vendor)/bin/hw/android\.hardware\.camera\.provider@2\.[0-9]+-external-service          u:object_r:hal_camera_default_exec:s0

@@ -1,0 +1,23 @@
+From 76dc7e474b56d1ca490b6af7302d0df6edc0b471 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?J=C4=99drek?= <62387434+Kejlo523@users.noreply.github.com>
+Date: Thu, 17 Sep 2026 22:47:47 +0200
+Subject: [PATCH 2/3] fs_config: allow packaged su for trusted apps
+
+(cherry picked from commit 3640887af7a75954dcc5b9a6704f703853e1e0ae)
+---
+ libcutils/fs_config.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/libcutils/fs_config.cpp b/libcutils/fs_config.cpp
+index a5f4f0e5579db6526ddb364bb2d851cf72d7b5af..ffab93ad8b043dd71e867f883409294106e852df 100644
+--- a/libcutils/fs_config.cpp
++++ b/libcutils/fs_config.cpp
+@@ -197,7 +197,7 @@ static const struct fs_path_config android_files[] = {
+     // the following two files are INTENTIONALLY set-uid, but they
+     // are NOT included on user builds.
+     { 06755, AID_ROOT,      AID_ROOT,      0, "system/xbin/procmem" },
+-    { 04750, AID_ROOT,      AID_SHELL,     0, "system/xbin/su" },
++    { 04755, AID_ROOT,      AID_SHELL,     0, "system/xbin/su" },
+ 
+     // the following files have enhanced capabilities and ARE included
+     // in user builds.

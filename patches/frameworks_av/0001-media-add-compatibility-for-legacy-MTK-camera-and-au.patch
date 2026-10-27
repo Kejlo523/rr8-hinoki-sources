@@ -1,0 +1,339 @@
+From 3884deaf9c54d887fe6dc573b9216d23346f5f63 Mon Sep 17 00:00:00 2001
+From: Kejlo523 <62387434+Kejlo523@users.noreply.github.com>
+Date: Thu, 27 Aug 2026 22:10:51 +0200
+Subject: [PATCH] media: add compatibility for legacy MTK camera and audio
+
+Change-Id: I7ea7af4dbdf472756cbef29d770c1ab70d3701af
+(cherry picked from commit ff02732217586bee95f19ac401b1133d821c7213)
+---
+ .../StagefrightRecorder.cpp                   | 21 +++++-
+ media/libstagefright/CameraSource.cpp         | 24 ++++++
+ media/libstagefright/MediaCodecSource.cpp     | 10 +++
+ .../bqhelper/GraphicBufferSource.cpp          | 16 +++-
+ .../include/media/stagefright/CameraSource.h  |  1 +
+ .../managerdefault/AudioPolicyManager.cpp     |  8 ++
+ .../libcameraservice/api1/Camera2Client.cpp   | 16 ++++
+ .../libcameraservice/api1/CameraClient.cpp    | 73 ++++++++++++++++++-
+ 8 files changed, 163 insertions(+), 6 deletions(-)
+
+diff --git a/media/libmediaplayerservice/StagefrightRecorder.cpp b/media/libmediaplayerservice/StagefrightRecorder.cpp
+index 1e7cf9784877285686980f8502a69054d80ce21b..842bb722559949dc5b6fe75538ab0a44fd9b9b98 100644
+--- a/media/libmediaplayerservice/StagefrightRecorder.cpp
++++ b/media/libmediaplayerservice/StagefrightRecorder.cpp
+@@ -1615,6 +1615,22 @@ status_t StagefrightRecorder::setupMediaSource(
+ 
+ status_t StagefrightRecorder::setupCameraSource(
+         sp<CameraSource> *cameraSource) {
++    const bool hinokiRawVideoBuffers =
++            android::base::GetProperty("ro.product.device", "") == "hinoki";
++    if (hinokiRawVideoBuffers) {
++        // The stock profile advertises 1080p, but the legacy camera1 record
++        // heap delivered on Q uses padded camera1 YUV streams. Configuring the
++        // software encoder for 1080p makes MediaCodecSource copy beyond the
++        // mapped MTK ashmem buffer after the first batch of frames.  Keep the
++        // software encode/decode path at VGA and a sane bitrate for this SoC.
++        mVideoWidth = 480;
++        mVideoHeight = 320;
++        mFrameRate = 15;
++        mVideoBitRate = 700000;
++        mVideoEncoderLevel = -1;
++        ALOGI("hinoki: forcing coherent camera/encoder size %dx%d",
++                mVideoWidth, mVideoHeight);
++    }
+     status_t err = OK;
+     if ((err = checkVideoEncoderCapabilities()) != OK) {
+         return err;
+@@ -1637,7 +1653,10 @@ status_t StagefrightRecorder::setupCameraSource(
+         *cameraSource = CameraSource::CreateFromCamera(
+                 mCamera, mCameraProxy, mCameraId, mClientName, mClientUid, mClientPid,
+                 videoSize, mFrameRate,
+-                mPreviewSurface);
++                mPreviewSurface, !hinokiRawVideoBuffers);
++        if (hinokiRawVideoBuffers) {
++            ALOGI("hinoki: forcing camera1 YUV buffers for software video encoder");
++        }
+     }
+     mCamera.clear();
+     mCameraProxy.clear();
+diff --git a/media/libstagefright/CameraSource.cpp b/media/libstagefright/CameraSource.cpp
+index 3bca728d3d8dffa897e7c611b35c4832f6953684..5eec51f6825aba948bcd72cc698fee800cb3924d 100644
+--- a/media/libstagefright/CameraSource.cpp
++++ b/media/libstagefright/CameraSource.cpp
+@@ -46,6 +46,15 @@ namespace android {
+ 
+ static const int64_t CAMERA_SOURCE_TIMEOUT_NS = 3000000000LL;
+ 
++static bool isHinokiDevice() {
++    static const bool isHinoki = []() {
++        char device[PROPERTY_VALUE_MAX] = {};
++        property_get("ro.product.device", device, "");
++        return !strcmp(device, "hinoki");
++    }();
++    return isHinoki;
++}
++
+ struct CameraSourceListener : public CameraListener {
+     explicit CameraSourceListener(const sp<CameraSource> &source);
+ 
+@@ -216,6 +225,7 @@ CameraSource::CameraSource(
+     : mCameraFlags(0),
+       mNumInputBuffers(0),
+       mVideoFrameRate(-1),
++      mRequestedVideoFrameRate(frameRate),
+       mCamera(0),
+       mSurface(surface),
+       mNumFramesReceived(0),
+@@ -1161,6 +1171,20 @@ bool CameraSource::shouldSkipFrameLocked(int64_t timestampUs) {
+         return true;
+     }
+ 
++    // The XA1 camera HAL claims that the requested 15 fps mode is active but
++    // continues delivering frames at roughly 30 fps.  The software AVC codec
++    // cannot decode that stream in real time on this device.  Enforce the
++    // requested cadence here, while recording buffers can still be returned
++    // safely to the legacy camera HAL.
++    if (isHinokiDevice() && mRequestedVideoFrameRate > 0 &&
++            mRequestedVideoFrameRate < 30 && mNumFramesReceived > 0) {
++        const int64_t minFrameIntervalUs =
++                (1000000LL / mRequestedVideoFrameRate) * 9 / 10;
++        if (timestampUs - mLastFrameTimestampUs < minFrameIntervalUs) {
++            return true;
++        }
++    }
++
+     if (mNumFramesReceived > 0) {
+         if (timestampUs <= mLastFrameTimestampUs) {
+             ALOGW("Dropping frame with backward timestamp %lld (last %lld)",
+diff --git a/media/libstagefright/MediaCodecSource.cpp b/media/libstagefright/MediaCodecSource.cpp
+index 836b881359fed5b288da7f12881e409c58758b8f..0f6fedf3a57c25ec4993f7f34b89f0aa2982efad 100644
+--- a/media/libstagefright/MediaCodecSource.cpp
++++ b/media/libstagefright/MediaCodecSource.cpp
+@@ -744,6 +744,16 @@ status_t MediaCodecSource::feedEncoderInputBuffers() {
+ 
+             size = mbuf->size();
+ 
++            if (size > inbuf->capacity()) {
++                // Legacy MTK camera1 allocates recording slots at 2 bytes per
++                // pixel but delivers YUV420 (1.5 bytes/pixel).  IMemory::size
++                // describes the whole allocation, including the unused tail.
++                // The software encoder buffer describes only active pixels.
++                ALOGW("Trimming padded camera frame: allocation=%zu active=%zu",
++                        size, inbuf->capacity());
++                size = inbuf->capacity();
++            }
++
+             memcpy(inbuf->data(), mbuf->data(), size);
+ 
+             if (mIsVideo) {
+diff --git a/media/libstagefright/bqhelper/GraphicBufferSource.cpp b/media/libstagefright/bqhelper/GraphicBufferSource.cpp
+index ea1a406df37bcaa0cbff1c243c96ec08d1d30608..8f24c5aafd5e1f8e592a6807fc1b00debc0b7f74 100644
+--- a/media/libstagefright/bqhelper/GraphicBufferSource.cpp
++++ b/media/libstagefright/bqhelper/GraphicBufferSource.cpp
+@@ -15,6 +15,7 @@
+  */
+ 
+ #include <inttypes.h>
++#include <cutils/properties.h>
+ 
+ #define LOG_TAG "GraphicBufferSource"
+ //#define LOG_NDEBUG 0
+@@ -1162,9 +1163,18 @@ status_t GraphicBufferSource::configure(
+         consumerUsage |= GRALLOC_USAGE_HW_VIDEO_ENCODER;
+         mConsumer->setConsumerUsageBits(consumerUsage);
+ 
+-        // Set impl. defined format as default. Depending on the usage flags
+-        // the device-specific implementation will derive the exact format.
+-        err = mConsumer->setDefaultBufferFormat(HAL_PIXEL_FORMAT_IMPLEMENTATION_DEFINED);
++        // Legacy gralloc implementations can leave IMPLEMENTATION_DEFINED as
++        // the actual buffer format even for a CPU-backed software encoder.
++        // SoftVideoEncoderOMXComponent cannot convert that opaque value and
++        // screen recording then fails as soon as the first frame arrives.
++        // Keep the AOSP behaviour by default and allow affected devices to
++        // request an explicit RGBA surface that the software encoder can lock
++        // and convert to YUV.
++        const int32_t defaultFormat = property_get_bool(
++                "persist.vendor.media.swenc_rgba", false)
++                ? HAL_PIXEL_FORMAT_RGBA_8888
++                : HAL_PIXEL_FORMAT_IMPLEMENTATION_DEFINED;
++        err = mConsumer->setDefaultBufferFormat(defaultFormat);
+         if (err != NO_ERROR) {
+             ALOGE("Failed to configure surface default format ret: %d", err);
+             return err;
+diff --git a/media/libstagefright/include/media/stagefright/CameraSource.h b/media/libstagefright/include/media/stagefright/CameraSource.h
+index 3037b72ff89976cc85180598381da8dc9d1cf69d..69517f632f6355c9a789639ca24d0b3a40fee489 100644
+--- a/media/libstagefright/include/media/stagefright/CameraSource.h
++++ b/media/libstagefright/include/media/stagefright/CameraSource.h
+@@ -189,6 +189,7 @@ protected:
+     Size     mVideoSize;
+     int32_t  mNumInputBuffers;
+     int32_t  mVideoFrameRate;
++    int32_t  mRequestedVideoFrameRate;
+     int32_t  mColorFormat;
+     int32_t  mEncoderFormat;
+     int32_t  mEncoderDataSpace;
+diff --git a/services/audiopolicy/managerdefault/AudioPolicyManager.cpp b/services/audiopolicy/managerdefault/AudioPolicyManager.cpp
+index 9d98f898dd7f364aa13dab29d80ec48a4f957ebe..958088779d9dc8369947cfb3c663bde9d3241ccd 100644
+--- a/services/audiopolicy/managerdefault/AudioPolicyManager.cpp
++++ b/services/audiopolicy/managerdefault/AudioPolicyManager.cpp
+@@ -2454,6 +2454,14 @@ status_t AudioPolicyManager::setStreamVolumeIndex(audio_stream_type_t stream,
+                                                   int index,
+                                                   audio_devices_t device)
+ {
++    // The legacy MTK audio stack reports DEFAULT_FOR_VOLUME to AudioService
++    // instead of the currently routed output.  Updating that synthetic device
++    // leaves the existing speaker index untouched, so every volume change is
++    // silently ignored. Resolve it exactly as getStreamVolumeIndex() does.
++    if (device == AUDIO_DEVICE_OUT_DEFAULT_FOR_VOLUME) {
++        device = mEngine->getOutputDevicesForStream(stream, true /*fromCache*/).types();
++        device = Volume::getDeviceForVolume(device);
++    }
+     auto attributes = mEngine->getAttributesForStreamType(stream);
+     ALOGV("%s: stream %s attributes=%s", __func__,
+           toString(stream).c_str(), toString(attributes).c_str());
+diff --git a/services/camera/libcameraservice/api1/Camera2Client.cpp b/services/camera/libcameraservice/api1/Camera2Client.cpp
+index 162b50f5ce7885c9d23b68237831865adcdc212d..4f58fd87aa86170dbae415bcb3ef9ad34de4b196 100644
+--- a/services/camera/libcameraservice/api1/Camera2Client.cpp
++++ b/services/camera/libcameraservice/api1/Camera2Client.cpp
+@@ -1571,6 +1571,22 @@ status_t Camera2Client::setParameters(const String8& params) {
+     Parameters::focusMode_t focusModeBefore = l.mParameters.focusMode;
+     res = l.mParameters.set(params);
+     if (res != OK) return res;
++
++    char device[PROPERTY_VALUE_MAX] = {};
++    property_get("ro.product.device", device, "");
++    if (!strcmp(device, "hinoki")) {
++        // The Sony Oreo HAL3 P2 node is unstable with its advertised 23 MP
++        // JPEG/ZSL configuration on Q. Apply one device-level compatibility
++        // profile in the camera1-over-HAL3 shim, shared by every API1 client.
++        l.mParameters.allowZslMode = false;
++        l.mParameters.slowJpegMode = true;
++        l.mParameters.pictureWidth = 640;
++        l.mParameters.pictureHeight = 480;
++        l.mParameters.pictureWidthLastSet = 640;
++        l.mParameters.pictureHeightLastSet = 480;
++        l.mParameters.jpegThumbSize[0] = 160;
++        l.mParameters.jpegThumbSize[1] = 128;
++    }
+     Parameters::focusMode_t focusModeAfter = l.mParameters.focusMode;
+ 
+     if (l.mParameters.allowZslMode && focusModeAfter != focusModeBefore) {
+diff --git a/services/camera/libcameraservice/api1/CameraClient.cpp b/services/camera/libcameraservice/api1/CameraClient.cpp
+index 40c8e19413eb8d4dc6662ad6aac82396a8a1f12d..381b2ae10a0f3708e25c95c3eb456fb2aa8be987 100644
+--- a/services/camera/libcameraservice/api1/CameraClient.cpp
++++ b/services/camera/libcameraservice/api1/CameraClient.cpp
+@@ -32,6 +32,28 @@ namespace android {
+ #define LOG1(...) ALOGD_IF(gLogLevel >= 1, __VA_ARGS__);
+ #define LOG2(...) ALOGD_IF(gLogLevel >= 2, __VA_ARGS__);
+ 
++static bool needsHinokiCamera1Compat() {
++    char device[PROPERTY_VALUE_MAX] = {};
++    property_get("ro.product.device", device, "");
++    return !strcmp(device, "hinoki");
++}
++
++static void applyHinokiCamera1Compat(CameraParameters* params) {
++    if (!needsHinokiCamera1Compat()) return;
++    // Sony's Oreo ZSD path relies on an old P2/gralloc contract. On Android Q
++    // it hangs before the JPEG callback or dereferences a null P2 buffer.
++    // Enforce the regular camera1 capture path centrally for every client.
++    params->set("zsl", "off");
++    params->set("zsd-mode", "off");
++    params->set("mtk-cam-mode", 0);
++    // Keep ZSD disabled, but retain the known-good stock capture stream.  A
++    // 640x480 diagnostic showed the second-shot corruption is session state,
++    // not a full-resolution P2 allocation failure.
++    params->setPictureSize(1920, 1088);
++    params->set(CameraParameters::KEY_JPEG_THUMBNAIL_WIDTH, 160);
++    params->set(CameraParameters::KEY_JPEG_THUMBNAIL_HEIGHT, 128);
++}
++
+ CameraClient::CameraClient(const sp<CameraService>& cameraService,
+         const sp<hardware::ICameraClient>& cameraClient,
+         const String16& clientPackageName,
+@@ -680,6 +702,16 @@ status_t CameraClient::takePicture(int msgType) {
+         mBurstCnt = 1;
+     LOG1("mBurstCnt = %d", mBurstCnt);
+ 
++    // The Oreo MTK HAL can leave a completed P2 capture attached to the
++    // camera session even after the app restarts preview or is reopened.  A
++    // post-callback cancel alone is racy because the app receives the JPEG
++    // asynchronously.  Clear any stale capture synchronously immediately
++    // before arming every new still request.
++    if (needsHinokiCamera1Compat()) {
++        status_t err = mHardware->cancelPicture();
++        ALOGI("hinoki: reset MTK capture before JPEG (%d)", err);
++    }
++
+     return mHardware->takePicture();
+ }
+ 
+@@ -691,8 +723,9 @@ status_t CameraClient::setParameters(const String8& params) {
+     status_t result = checkPidAndHardware();
+     if (result != NO_ERROR) return result;
+ 
+-    mLatestSetParameters = CameraParameters(params);
+     CameraParameters p(params);
++    applyHinokiCamera1Compat(&p);
++    mLatestSetParameters = p;
+     return mHardware->setParameters(p);
+ }
+ 
+@@ -704,7 +737,9 @@ String8 CameraClient::getParameters() const {
+         return String8();
+     }
+ 
+-    String8 params(mHardware->getParameters().flatten());
++    CameraParameters cameraParams(mHardware->getParameters());
++    applyHinokiCamera1Compat(&cameraParams);
++    String8 params(cameraParams.flatten());
+     LOG1("getParameters (pid %d) (%s)", CameraThreadState::getCallingPid(), params.string());
+     return params;
+ }
+@@ -872,6 +907,32 @@ void CameraClient::dataCallback(int32_t msgType,
+     sp<CameraClient> client = getClientFromCookie(user);
+     if (client.get() == nullptr) return;
+ 
++    // Sony's MTK camera1 HAL wraps the final JPEG in MTK_CAMERA_MSG_EXT_DATA
++    // instead of sending CAMERA_MSG_COMPRESSED_IMAGE. The first two uint32_t
++    // words are the MTK subtype (16 == compressed image) and a reserved word;
++    // the JPEG starts immediately afterwards. Translate this vendor callback
++    // in cameraserver so every camera1 application receives the standard API.
++    if (needsHinokiCamera1Compat() && msgType == 0x20000000 && dataPtr != nullptr &&
++            dataPtr->size() > 2 * sizeof(uint32_t)) {
++        const uint32_t* words = static_cast<const uint32_t*>(dataPtr->pointer());
++        if (words != nullptr && words[0] == 0x10) {
++            ssize_t offset = 0;
++            size_t size = 0;
++            sp<IMemoryHeap> heap = dataPtr->getMemory(&offset, &size);
++            constexpr size_t kMtkExtHeaderSize = 2 * sizeof(uint32_t);
++            if (heap == nullptr || size <= kMtkExtHeaderSize) {
++                ALOGE("Invalid hinoki MTK JPEG callback: heap=%p size=%zu",
++                        heap.get(), size);
++                return;
++            }
++            sp<IMemory> jpeg = new MemoryBase(heap, offset + kMtkExtHeaderSize,
++                    size - kMtkExtHeaderSize);
++            if (!client->lockIfMessageWanted(CAMERA_MSG_COMPRESSED_IMAGE)) return;
++            client->handleCompressedPicture(jpeg);
++            return;
++        }
++    }
++
+     if (!client->lockIfMessageWanted(msgType)) return;
+     if (dataPtr == 0 && metadata == NULL) {
+         ALOGE("Null data returned in data callback");
+@@ -1065,6 +1126,14 @@ void CameraClient::handleCompressedPicture(const sp<IMemory>& mem) {
+     if (!mBurstCnt && !mLongshotEnabled) {
+         LOG1("handleCompressedPicture mBurstCnt = %d", mBurstCnt);
+         disableMsgType(CAMERA_MSG_COMPRESSED_IMAGE);
++        // The legacy MTK HAL leaves its capture pipeline armed after sending
++        // an EXT_DATA JPEG.  The next takePicture() then reuses the stale P2
++        // output and returns a uniform green frame.  Stock MTK cameraservice
++        // finalizes that vendor capture here; AOSP normally has no need to.
++        if (needsHinokiCamera1Compat()) {
++            status_t err = mHardware->cancelPicture();
++            ALOGI("hinoki: finalized MTK capture after JPEG (%d)", err);
++        }
+     }
+ 
+     sp<hardware::ICameraClient> c = mRemoteCallback;

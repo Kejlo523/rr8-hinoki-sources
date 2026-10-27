@@ -1,0 +1,29 @@
+Source preparation audit — 2026-10-27T19:51:30.316620+01:00
+Device: Xperia XA1 Dual G3112 / hinoki
+Base: Resurrection Remix Q 8.7.3 / Android 10
+No Android build, lunch, compiler or flash was invoked.
+
+Checks completed:
+- All 783 manifest projects fetched and checked out.
+- 15 patch files replay to the exact trees of all 9 modified projects.
+- 38 device XML documents parsed.
+- All 1655 hardware/vendor PRODUCT_COPY_FILES inputs exist.
+- Kernel and vendor at exact V27 pinned revisions.
+- Git diff --check clean for all modified projects.
+- No dependency on Rising source directories found in 670 Git alternates.
+- New RR checkout has no out directory.
+
+Local heads:
+build/make 6238383f97c748cebbbd65fe87b00b65f48117f0 (base b4ca8b8a399155848ba6305df4c76e7033d0250a)
+frameworks/av 3884deaf9c54d887fe6dc573b9216d23346f5f63 (base 6ebed82c15a55a672599abf00810f574d293f08f)
+frameworks/base 8a1348f44bbf54da5c89d8b1251f8b3e1eddba9d (base 5e1db0334755ba47245d69857a17f84503f7ce6f)
+frameworks/opt/telephony 16c015a1e7402dce580519a583c881e7715dc74e (base 97c86fc12d99bd61d64d4ede15f391ee222de346)
+system/core 1acf85ad7abe787f18d41103a34fdc839ea4e9e5 (base 6a23eba3c09c63d90cb57fe5bc1fc857f0b183e4)
+system/sepolicy 8a568ea1075029068baacc1ec8ae2b8bdb2db2a6 (base 2c975b5c7c8e525b83c517be41b8cb5fc5136cd4)
+vendor/rr 1c590b280a9a2044bde980edef982d7edb3364e3 (base a8dd039b4acb25bb47179fd51ae62dfce36c25f6)
+device/sony/hinoki 68315adee722d5698db8e86d9adbcd4e0f74a219 (base 8fa5aa75b9fff5a7f9b49475fbe33e5b914bc1a9)
+device/sony/mt6757-common 9f5ec7fb554b14df288cfe475436528b6ab55003 (base 489af7e3004c2a2441eddbd394d653c6fc04a934)
+
+Not validated: compilation, installation, boot, hardware functions, power consumption.
+Old Lineage device test results are not RR test results.
+Pinned base manifest is fetchable upstream; working-local manifest includes unpublished local commits.

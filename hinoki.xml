@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<manifest>
+  <!-- Device/BSP revisions from the verified XA1 Dual G3112 V27 port.
+       RR-modified framework projects are retained and patched separately. -->
+  <remote name="hinoki-kejlo" fetch="https://github.com/Kejlo523/" />
+
+  <!-- Exact RR baselines used by the accompanying hinoki patch series. -->
+  <extend-project name="android_build" path="build/make"
+                  revision="b4ca8b8a399155848ba6305df4c76e7033d0250a" />
+  <extend-project name="frameworks_av" path="frameworks/av"
+                  revision="6ebed82c15a55a672599abf00810f574d293f08f" />
+  <extend-project name="android_frameworks_base" path="frameworks/base"
+                  revision="5e1db0334755ba47245d69857a17f84503f7ce6f" />
+  <extend-project name="frameworks_opt_telephony" path="frameworks/opt/telephony"
+                  revision="97c86fc12d99bd61d64d4ede15f391ee222de346" />
+  <extend-project name="android_system_core" path="system/core"
+                  revision="6a23eba3c09c63d90cb57fe5bc1fc857f0b183e4" />
+  <extend-project name="system_sepolicy" path="system/sepolicy"
+                  revision="2c975b5c7c8e525b83c517be41b8cb5fc5136cd4" />
+  <extend-project name="android_vendor_resurrection" path="vendor/rr"
+                  revision="a8dd039b4acb25bb47179fd51ae62dfce36c25f6" />
+
+  <remove-project name="LineageOS/android_external_wpa_supplicant_8" />
+  <remove-project name="LineageOS/android_hardware_interfaces" />
+  <remove-project name="LineageOS/android_hardware_ril" />
+  <remove-project name="LineageOS/android_packages_apps_Snap" />
+  <remove-project name="LineageOS/android_system_extras" />
+  <remove-project name="platform/system/ca-certificates" />
+  <remove-project name="LineageOS/android_prebuilts_gcc_linux-x86_aarch64_aarch64-linux-android-4.9" />
+  <remove-project name="LineageOS/android_prebuilts_gcc_linux-x86_arm_arm-linux-androideabi-4.9" />
+  <remove-project name="platform/prebuilts/gcc/linux-x86/x86/x86_64-linux-android-4.9" />
+
+  <project name="android_external_wpa_supplicant_8" path="external/wpa_supplicant_8"
+           remote="hinoki-kejlo" revision="20593189965275b3083e81006551fd551ccaed40" />
+  <project name="android_hardware_interfaces" path="hardware/interfaces"
+           remote="hinoki-kejlo" revision="8ace480d75540b6bf8cfd0f0629b6bfbb692fafe" />
+  <project name="android_hardware_ril" path="hardware/ril"
+           remote="hinoki-kejlo" revision="43807aa0515347746e2b0725c3ef7fc24c090190" />
+  <project name="android_packages_apps_Snap" path="packages/apps/Snap"
+           remote="hinoki-kejlo" revision="edd377fe4c12a55af0b4089eea8df3eeca965e9e" />
+  <project name="android_system_extras" path="system/extras"
+           remote="hinoki-kejlo" revision="d2b2ad62f3aebf016a09e631ec4b934efa479270" />
+  <project name="android_system_ca-certificates" path="system/ca-certificates"
+           remote="hinoki-kejlo" revision="94a4a6dd9e5ea086c7ce327ebdeea28438e3ab5b" />
+  <project name="android_prebuilts_gcc_linux-x86_aarch64_aarch64-linux-android-4.9"
+           path="prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9"
+           remote="hinoki-kejlo" revision="6fd0bf241c85cce85efeae7713a4093f35b78116" />
+  <project name="android_prebuilts_gcc_linux-x86_arm_arm-linux-androideabi-4.9"
+           path="prebuilts/gcc/linux-x86/arm/arm-linux-androideabi-4.9"
+           remote="hinoki-kejlo" revision="fb606bbf1704f948a3af31766123cb5d877186ba" />
+  <project name="android_prebuilts_gcc_linux-x86_x86_x86_64-linux-android-4.9"
+           path="prebuilts/gcc/linux-x86/x86/x86_64-linux-android-4.9"
+           remote="hinoki-kejlo" revision="1d8e5847316525d5a645f5b40f97fff0e5dd46f3" />
+
+  <project name="android_device_sony_hinoki" path="device/sony/hinoki"
+           remote="hinoki-kejlo" revision="8fa5aa75b9fff5a7f9b49475fbe33e5b914bc1a9" />
+  <project name="android_device_sony_mt6757-common" path="device/sony/mt6757-common"
+           remote="hinoki-kejlo" revision="489af7e3004c2a2441eddbd394d653c6fc04a934" />
+  <project name="android_kernel_sony_mt6757" path="kernel/sony/mt6757"
+           remote="hinoki-kejlo" revision="7d74b28506bdaf4c025b602b6a50ad58f017ed5a" />
+  <project name="android_vendor_sony_mt6757-common" path="vendor/sony/mt6757-common"
+           remote="hinoki-kejlo" revision="aec41b19273406382927af8ca4fcf283997ec7c8" />
+</manifest>

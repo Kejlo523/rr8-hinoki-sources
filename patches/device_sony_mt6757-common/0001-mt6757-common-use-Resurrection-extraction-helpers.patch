@@ -1,0 +1,36 @@
+From 9f5ec7fb554b14df288cfe475436528b6ab55003 Mon Sep 17 00:00:00 2001
+From: Kejlo <62387434+Kejlo523@users.noreply.github.com>
+Date: Tue, 27 Oct 2026 19:38:55 +0100
+Subject: [PATCH] mt6757-common: use Resurrection extraction helpers
+
+---
+ extract-files.sh   | 2 +-
+ setup-makefiles.sh | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/extract-files.sh b/extract-files.sh
+index 337f2c2a686fdca9ddadf66807fa99714d70609e..99a0706815e9df2b2a32bd317abaa9d94a8da72c 100644
+--- a/extract-files.sh
++++ b/extract-files.sh
+@@ -26,7 +26,7 @@ if [[ ! -d "$MY_DIR" ]]; then MY_DIR="$PWD"; fi
+ 
+ LINEAGE_ROOT="$MY_DIR"/../../..
+ 
+-HELPER="$LINEAGE_ROOT"/vendor/lineage/build/tools/extract_utils.sh
++HELPER="$LINEAGE_ROOT"/vendor/rr/build/tools/extract_utils.sh
+ if [ ! -f "$HELPER" ]; then
+     echo "Unable to find helper script at $HELPER"
+     exit 1
+diff --git a/setup-makefiles.sh b/setup-makefiles.sh
+index c2e3d74175f3f5f6ebda26a9dac7292c0745e9a5..fee358c21d26c9be82155b99789d7eac7e3eb908 100644
+--- a/setup-makefiles.sh
++++ b/setup-makefiles.sh
+@@ -28,7 +28,7 @@ if [[ ! -d "$MY_DIR" ]]; then MY_DIR="$PWD"; fi
+ 
+ LINEAGE_ROOT="$MY_DIR"/../../..
+ 
+-HELPER="$LINEAGE_ROOT"/vendor/lineage/build/tools/extract_utils.sh
++HELPER="$LINEAGE_ROOT"/vendor/rr/build/tools/extract_utils.sh
+ if [ ! -f "$HELPER" ]; then
+     echo "Unable to find helper script at $HELPER"
+     exit 1

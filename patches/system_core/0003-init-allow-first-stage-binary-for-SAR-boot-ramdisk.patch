@@ -1,0 +1,35 @@
+From 1acf85ad7abe787f18d41103a34fdc839ea4e9e5 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?J=C4=99drek?= <62387434+Kejlo523@users.noreply.github.com>
+Date: Mon, 21 Sep 2026 22:41:43 +0200
+Subject: [PATCH 3/3] init: allow first-stage binary for SAR boot ramdisk
+
+(cherry picked from commit 79c315140f50dd311c6bc934c8c2b4e7dfa2aaf7)
+---
+ init/Android.mk | 7 ++++---
+ 1 file changed, 4 insertions(+), 3 deletions(-)
+
+diff --git a/init/Android.mk b/init/Android.mk
+index a34ae0ba95d1ce0cd4ea07b97803e4e9a800e850..cd78eeeb65f50eb0d99119b671dc1982ceca080b 100644
+--- a/init/Android.mk
++++ b/init/Android.mk
+@@ -41,8 +41,9 @@ init_cflags += \
+ 
+ # --
+ 
+-# Do not build this even with mmma if we're system-as-root, otherwise it will overwrite the symlink.
+-ifneq ($(BOARD_BUILD_SYSTEM_ROOT_IMAGE),true)
++# SAR normally has no boot ramdisk. Boards opting into a separate first-stage
++# ramdisk keep /init in system as a symlink and install this binary in ramdisk/.
++ifneq ($(BOARD_BUILD_SYSTEM_ROOT_IMAGE)$(filter true,$(BOARD_BOOT_RAMDISK_WITH_SYSTEM_ROOT)),true)
+ include $(CLEAR_VARS)
+ LOCAL_CPPFLAGS := $(init_cflags)
+ LOCAL_SRC_FILES := \
+@@ -126,7 +127,7 @@ include $(BUILD_PHONY_PACKAGE)
+ include $(CLEAR_VARS)
+ 
+ LOCAL_MODULE := init_vendor
+-ifneq ($(BOARD_BUILD_SYSTEM_ROOT_IMAGE),true)
++ifneq ($(BOARD_BUILD_SYSTEM_ROOT_IMAGE)$(filter true,$(BOARD_BOOT_RAMDISK_WITH_SYSTEM_ROOT)),true)
+ LOCAL_REQUIRED_MODULES := \
+    init_first_stage \
+ 
