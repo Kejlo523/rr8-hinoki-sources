@@ -114,22 +114,22 @@ wymaga osobnego `git lfs pull`. W przygotowanym drzewie jest już pełny plik
 `14b96ddc6bbc0579621011bed9af3dcb95af8371a93b4af2007226ff6049e159`,
 zgodnym ze wskaźnikiem LFS. Nie pozostały wskaźniki LFS w plikach vendor.
 
-## Budowanie później przez użytkownika
+## Budowanie
 
-Poniższe komendy nie zostały wykonane podczas przygotowania źródeł:
+Pełny build z izolowanym środowiskiem i logiem:
 
 ```bash
-cd /home/kejlo/xperia_XA1/source/resurrection-remix-Q-hinoki
-unset OUT_DIR OUT_DIR_COMMON_BASE JAVA_HOME ANDROID_JAVA_HOME
-export RR_BUILDTYPE=Unofficial RR_BUILD=hinoki days_to_log=1
-source build/envsetup.sh
-lunch rr_hinoki-userdebug
-m -j4 bacon
+bash /home/kejlo/xperia_XA1/source/rr-hinoki-port/build-rr.sh 16
 ```
 
-Środowisko wybiera dołączony JDK. Nie używaj Javy 21 z drzewa Androida 17.
-`m` jest funkcją dostępną po `source build/envsetup.sh`; samo `bacon` nie jest
-poleceniem powłoki. Liczbę zadań można dobrać do RAM komputera. Wyniki trafią do
+Pierwszy argument to liczba zadań, drugi opcjonalny argument to inny katalog
+źródeł RR. Skrypt używa dołączonych JDK 9/8, wykonuje `source build/envsetup.sh`,
+`lunch rr_hinoki-userdebug` i `m -j16 bacon`. Ustawia autora `Kejlo`, host
+`endozero`, typ `Unofficial` i względne `OUT_DIR=out`. Przed pierwszym buildem
+sprawdza dostępność co najmniej 120 GiB miejsca. Nie dziedziczy zmiennych
+produktu, Javy, GMS ani SPL ze środowiska RisingOS.
+
+Logi zapisuje w `/home/kejlo/xperia_XA1/build-logs/`. Wyniki trafią do
 `out/target/product/hinoki/`, a ZIP do `RROS-Q-8.7.3-*-hinoki-Unofficial.zip`.
 
 Nie wykonuj `clean`, `clobber`, `installclean` ani usuwania `out` w istniejących
