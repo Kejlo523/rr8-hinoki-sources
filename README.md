@@ -135,6 +135,9 @@ Starszy Clang używany przez RenderScript wymaga `libncurses.so.5` i
 `/home/kejlo/.local/legacy-build-libs/lib/x86_64-linux-gnu`; wrapper udostępnia
 ten katalog przez `LD_LIBRARY_PATH`. Na innym hoście przygotuj biblioteki ABI 5
 albo dostosuj tę ścieżkę. Nie zastępuj ich dowiązaniami do ABI 6.
+Narzędzie `m4` korzysta również z `libsigsegv.so.2`, dostępnej lokalnie w
+`/home/kejlo/.local/libsigsegv/usr/lib/x86_64-linux-gnu`; ten katalog także
+jest uwzględniony w wrapperze.
 
 Logi zapisuje w `/home/kejlo/xperia_XA1/build-logs/`. Wyniki trafią do
 `out/target/product/hinoki/`, a ZIP do `RROS-Q-8.7.3-*-hinoki-Unofficial.zip`.

@@ -30,7 +30,7 @@ printf 'Source: %s\nJobs: %s\nLog: %s\n' "$source_root" "$jobs" "$log_file"
 env -i \
     HOME="$HOME" USER="${USER:-kejlo}" LOGNAME="${LOGNAME:-kejlo}" \
     SHELL=/bin/bash PATH="$PATH" LANG=C.UTF-8 LC_ALL=C.UTF-8 TERM=xterm \
-    LD_LIBRARY_PATH="$HOME/.local/legacy-build-libs/lib/x86_64-linux-gnu" \
+    LD_LIBRARY_PATH="$HOME/.local/legacy-build-libs/lib/x86_64-linux-gnu:$HOME/.local/libsigsegv/usr/lib/x86_64-linux-gnu" \
     BUILD_USERNAME=Kejlo BUILD_HOSTNAME=endozero \
     RR_BUILDTYPE=Unofficial RR_BUILD=hinoki days_to_log=1 \
     OUT_DIR=out USE_CCACHE=false \
