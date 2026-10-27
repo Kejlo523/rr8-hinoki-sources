@@ -1,0 +1,41 @@
+From 2074c84f4f777af6784b2f7765751e7a318886ae Mon Sep 17 00:00:00 2001
+From: David Anderson <dvander@google.com>
+Date: Fri, 25 Oct 2019 15:11:58 -0700
+Subject: [PATCH] Add fastbootd to the sys_rawio whitelist.
+
+A similar problem was previously encountered with the boot control HAL
+in bug 118011561. The HAL may need access to emmc to implement
+set_active commands.
+
+fastbootd uses the boot control HAL in passthru mode when in recovery,
+so by extension, it needs this exception as well.
+
+Bug: 140367894
+Test: fastbootd can use sys_rawio
+Change-Id: I1040e314a58eae8a516a2e999e9d4e2aa51786e7
+(cherry picked from commit 1d13a7ed16338bb57e6069a0307d380c706df73b)
+---
+ prebuilts/api/29.0/private/domain.te | 1 +
+ private/domain.te                    | 1 +
+ 2 files changed, 2 insertions(+)
+
+diff --git a/prebuilts/api/29.0/private/domain.te b/prebuilts/api/29.0/private/domain.te
+index 209eeb0dd00b77ee399dc64c3320cebaf3a7abc1..1d26761d6b7dad5daba9ae653428240b10d05e52 100644
+--- a/prebuilts/api/29.0/private/domain.te
++++ b/prebuilts/api/29.0/private/domain.te
+@@ -312,4 +312,5 @@ neverallow {
+   -uncrypt
+   -tee
+   -hal_bootctl_server
++  -fastbootd
+ } self:global_capability_class_set sys_rawio;
+diff --git a/private/domain.te b/private/domain.te
+index 209eeb0dd00b77ee399dc64c3320cebaf3a7abc1..1d26761d6b7dad5daba9ae653428240b10d05e52 100644
+--- a/private/domain.te
++++ b/private/domain.te
+@@ -312,4 +312,5 @@ neverallow {
+   -uncrypt
+   -tee
+   -hal_bootctl_server
++  -fastbootd
+ } self:global_capability_class_set sys_rawio;
