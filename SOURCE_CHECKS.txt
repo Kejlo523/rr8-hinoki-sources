@@ -1,40 +1,45 @@
-Initial source preparation audit (before build authorization) — 2026-10-27T19:51:30.316620+01:00
+Final source/build audit — 2026-10-27
 Device: Xperia XA1 Dual G3112 / hinoki
-Base: Resurrection Remix Q 8.7.3 / Android 10
-No Android build, lunch, compiler or flash was invoked.
+Base: Resurrection Remix Q 8.7.3 / Android 10 / SPL 2021-09-05
+Full Android build: SUCCESS. No phone flashing or device tests performed.
 
-Checks completed:
+Source preparation and checks:
 - All 783 manifest projects fetched and checked out.
-- 15 patch files replay to the exact trees of all 9 modified projects.
-- 38 device XML documents parsed.
-- All 1655 hardware/vendor PRODUCT_COPY_FILES inputs exist.
-- Kernel and vendor at exact V27 pinned revisions.
-- Git diff --check clean for all modified projects.
-- No dependency on Rising source directories found in 670 Git alternates.
-- New RR checkout has no out directory.
-- All 805 vendor shared libraries have valid ELF headers.
-- Full 61,840,499-byte modem EDB Git LFS object fetched and checked out.
-- EDB SHA256 matches its LFS OID: 14b96ddc6bbc0579621011bed9af3dcb95af8371a93b4af2007226ff6049e159.
-- No LFS pointers remain in the vendor worktree.
+- 20 exported patches in 10 modified projects; patch series replayed to the exact working trees.
+- 38 device XML documents parsed; all 1655 hardware/vendor copy inputs exist.
+- Kernel and vendor retain the exact V27 pinned revisions.
+- Git diff --check passes; all 10 modified worktrees clean.
+- No dependency on deleted Rising directories found in 670 Git alternates.
+- Existing XA1 Lineage tree and out preserved; RR uses its reference Git objects.
+- All 805 vendor shared libraries have ELF headers; no vendor LFS pointers remain.
+- Full 61,840,499-byte modem EDB fetched; SHA256:
+  14b96ddc6bbc0579621011bed9af3dcb95af8371a93b4af2007226ff6049e159.
+- 395 host ELF executables checked with configured library paths: no missing shared libraries.
+- Local M4/Bison parser generation and kernel host Clang configuration passed.
+
+Build and artifact checks:
+- Final successful log: /home/kejlo/xperia_XA1/build-logs/rr-Q-hinoki-20261027-222925.log
+- Ready directory: /home/kejlo/xperia_XA1/ROM/RR-Q-8.7.3-20261027-G3112/
+- Full ROM ZIP CRC passed; OTA metadata includes hinoki and Android SDK 29.
+- OTA boot equals standalone boot; image geometry and DTB match V27.
+- Static ARM64 first-stage init, fstab and SAR ramdisk metadata verified.
+- SELinux neverallow compilation passed; su/backuptool domains are permissive.
+- Compiled Settings resource table has no STRING_TOO_LARGE entries.
+- SHA256 of copied ROM, boot and recovery match the build outputs.
+- Development certificate: build/make/target/product/security/testkey.
+- Vanilla/userdebug/Unofficial/test-keys; Kejlo@endozero; no private-key signing.
 
 Local heads:
 build/make 6238383f97c748cebbbd65fe87b00b65f48117f0 (base b4ca8b8a399155848ba6305df4c76e7033d0250a)
 frameworks/av 3884deaf9c54d887fe6dc573b9216d23346f5f63 (base 6ebed82c15a55a672599abf00810f574d293f08f)
-frameworks/base 8a1348f44bbf54da5c89d8b1251f8b3e1eddba9d (base 5e1db0334755ba47245d69857a17f84503f7ce6f)
+frameworks/base f90a2aee556c3cc212f85f8f2713818021261ffc (base 5e1db0334755ba47245d69857a17f84503f7ce6f)
 frameworks/opt/telephony 16c015a1e7402dce580519a583c881e7715dc74e (base 97c86fc12d99bd61d64d4ede15f391ee222de346)
 system/core 1acf85ad7abe787f18d41103a34fdc839ea4e9e5 (base 6a23eba3c09c63d90cb57fe5bc1fc857f0b183e4)
-system/sepolicy 8a568ea1075029068baacc1ec8ae2b8bdb2db2a6 (base 2c975b5c7c8e525b83c517be41b8cb5fc5136cd4)
-vendor/rr 1c590b280a9a2044bde980edef982d7edb3364e3 (base a8dd039b4acb25bb47179fd51ae62dfce36c25f6)
+system/sepolicy 2074c84f4f777af6784b2f7765751e7a318886ae (base 2c975b5c7c8e525b83c517be41b8cb5fc5136cd4)
+vendor/rr 8fc5b3882630715b14b0531e25aff517c5ccb939 (base a8dd039b4acb25bb47179fd51ae62dfce36c25f6)
+packages/apps/Settings 7719dfe56ea751dba310bf2b70960df64c81f9e5 (base c65423981fe1f615b51dc534038110e6e86f88ad)
 device/sony/hinoki 68315adee722d5698db8e86d9adbcd4e0f74a219 (base 8fa5aa75b9fff5a7f9b49475fbe33e5b914bc1a9)
 device/sony/mt6757-common 9f5ec7fb554b14df288cfe475436528b6ab55003 (base 489af7e3004c2a2441eddbd394d653c6fc04a934)
 
-Not validated: compilation, installation, boot, hardware functions, power consumption.
-Old Lineage device test results are not RR test results.
-Pinned base manifest is fetchable upstream; working-local manifest includes unpublished local commits.
-
-Subsequent build preparation checks:
-- 16th patch ports Lineage kernel host tools to Clang; the updated vendor/rr patch series replays exactly.
-- 395 host ELF executables checked with the configured library paths: no missing shared libraries.
-- Bison generated the SELinux parser with explicit local M4 successfully.
-- Kernel defconfig generation passed with the Clang host-tools correction.
-- Compilation is in progress; current state is in BUILD_STATUS.md.
+Not validated: installation, boot, hardware functions or power consumption on RR.
+Pinned base manifest is fetchable upstream; working-local contains unpublished commits.

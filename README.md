@@ -5,11 +5,17 @@ Resurrection Remix Q. Android 10, produkt `rr_hinoki-userdebug`.
 
 ## Stan
 
-Pełną kompilację uruchomiono 2026-10-27 po weryfikacji i przeniesieniu starych
-drzew RisingOS na Dysk3. Bieżący wynik opisuje `BUILD_STATUS.md`. RR nie był
-jeszcze testowany na telefonie. Działanie poprzedniego LineageOS nie oznacza,
-że gotowy RR przejdzie wszystkie testy. Baza RR jest historyczna: deklaruje
-Android 10 i SPL `2021-09-05`; data nie została sztucznie podniesiona.
+Pełna kompilacja zakończyła się sukcesem 2026-10-27. Gotowy ROM, boot,
+recovery, raport kontroli i sumy SHA-256 są w katalogu:
+`/home/kejlo/xperia_XA1/ROM/RR-Q-8.7.3-20261027-G3112/`.
+ZIP przeszedł kontrolę CRC; boot i recovery mają geometrię oraz DTB zgodne
+z działającą bazą V27. Boot zawiera statyczny first-stage init i ramdisk SAR.
+Szczegóły opisuje `BUILD_STATUS.md`.
+
+RR nie był jeszcze testowany na telefonie. Działanie poprzedniego LineageOS
+nie potwierdza działania sprzętu w RR. Jest to Vanilla bez Google apps,
+`userdebug / Unofficial / test-keys`, bez podpisania prywatnymi kluczami.
+Baza jest historyczna: Android 10 i SPL `2021-09-05`; daty nie podniesiono.
 
 RR zachowuje własne ustawienia, personalizację interfejsu, motywy i framework.
 Wybrano go zamiast Paranoid Android Quartz, ponieważ RR Q bazuje na LineageOS
@@ -106,7 +112,7 @@ Zestaw 20 wyeksportowanych patchy sprawdzono przez odtworzenie zmian w
 osobnych indeksach Git: drzewa wszystkich dziesięciu projektów odpowiadają
 bieżącym commitom. Sprawdzono też 38 plików XML urządzenia, istnienie 1655
 plików kopiowanych z BSP/vendor i obecność wszystkich 783 projektów. To
-kontrole statyczne, nie wynik kompilacji ani testu na urządzeniu.
+kontrole statyczne; wynik późniejszej pełnej kompilacji opisuje `BUILD_STATUS.md`.
 
 Sprawdzono też 805 bibliotek vendor: wszystkie mają nagłówek ELF. Repo
 domyślnie wyłącza smudge Git LFS, dlatego baza diagnostyczna modemu `.EDB`
@@ -162,7 +168,7 @@ nie dodaje brakujących poprawek bezpieczeństwa.
 
 Pierwszą instalację RR należy traktować jako zmianę dystrybucji; wcześniej
 wykonaj kopię danych. Nie flashowano żadnych obrazów w ramach tego przygotowania.
-Magisk 28.1 był testowany na Lineage V27, nie na jeszcze niezbudowanym RR.
+Magisk 28.1 był testowany na Lineage V27, nie na tym buildzie RR.
 
 ## Ograniczenia odziedziczone z V27
 
@@ -171,8 +177,9 @@ Magisk 28.1 był testowany na Lineage V27, nie na jeszcze niezbudowanym RR.
 - Nagrywanie ekranu korzysta z programowego enkodera AVC.
 - NFC ograniczono do stabilnego NFC-A; Beam/P2P i równoległe rozszerzenia NXP
   pozostają wyłączone w konfiguracji sprzętu.
-- SELinux pozostaje skonfigurowany jako enforcing. Poprawki V27 nie stanowią
-  potwierdzenia braku nowych odmów AVC po zmianie frameworka na RR.
+- Domyślny tryb SELinux to enforcing; polityka wersji userdebug zawiera domeny
+  `su` i `backuptool` w trybie permissive. Kontrola neverallow przechodzi.
+  Zachowanie polityki i ewentualne odmowy AVC wymagają testu na telefonie.
 - Pobór energii i wszystkie funkcje trzeba sprawdzić ponownie na RR.
 
 ## Źródła i autorzy
