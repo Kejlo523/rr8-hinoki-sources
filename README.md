@@ -138,6 +138,9 @@ albo dostosuj tę ścieżkę. Nie zastępuj ich dowiązaniami do ABI 6.
 Narzędzie `m4` korzysta również z `libsigsegv.so.2`, dostępnej lokalnie w
 `/home/kejlo/.local/libsigsegv/usr/lib/x86_64-linux-gnu`; ten katalog także
 jest uwzględniony w wrapperze.
+`M4` wskazuje jawnie na `/home/kejlo/.local/bin/m4`, ponieważ dołączony Bison
+domyślnie szuka `/usr/bin/m4`. Generator parsera SELinux sprawdzono z tą
+lokalną konfiguracją.
 
 Logi zapisuje w `/home/kejlo/xperia_XA1/build-logs/`. Wyniki trafią do
 `out/target/product/hinoki/`, a ZIP do `RROS-Q-8.7.3-*-hinoki-Unofficial.zip`.

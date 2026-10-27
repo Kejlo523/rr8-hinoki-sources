@@ -1,0 +1,55 @@
+From 8fc5b3882630715b14b0531e25aff517c5ccb939 Mon Sep 17 00:00:00 2001
+From: LuK1337 <priv.luk@gmail.com>
+Date: Tue, 22 Sep 2020 23:11:21 +0200
+Subject: [PATCH] kernel: Use Clang as HOST_{CC,CXX}
+
+GCC was deprecated upstream, so switch to Clang.
+
+Change-Id: I8a6c9d6b763db0055189d83f9037ccb0c50a23ea
+(cherry picked from commit 8483332b0700ddafdbadbde7d8d742fe159afce9)
+---
+ config/BoardConfigKernel.mk | 16 ++++++----------
+ 1 file changed, 6 insertions(+), 10 deletions(-)
+
+diff --git a/config/BoardConfigKernel.mk b/config/BoardConfigKernel.mk
+index 3e0ac66e94e209ec2b317d5e00047f7f626def96..43154d493d80511ce341ba66aa593ff740906df5 100644
+--- a/config/BoardConfigKernel.mk
++++ b/config/BoardConfigKernel.mk
+@@ -52,6 +52,7 @@ else
+ KERNEL_ARCH := $(TARGET_KERNEL_ARCH)
+ endif
+ 
++CLANG_PREBUILTS := $(BUILD_TOP)/prebuilts/clang/host/$(HOST_PREBUILT_TAG)/clang-r353983c1
+ GCC_PREBUILTS := $(BUILD_TOP)/prebuilts/gcc/$(HOST_OS)-x86
+ # arm64 toolchain
+ KERNEL_TOOLCHAIN_arm64 := $(GCC_PREBUILTS)/aarch64/aarch64-linux-android-4.9/bin
+@@ -116,9 +117,9 @@ ifeq ($(KERNEL_ARCH),arm64)
+ endif
+ 
+ ifeq ($(HOST_OS),darwin)
+-  KERNEL_MAKE_FLAGS += HOSTCFLAGS="-I$(BUILD_TOP)/external/elfutils/libelf -I/usr/local/opt/openssl/include -L/usr/local/opt/openssl/lib"
++  KERNEL_MAKE_FLAGS += HOSTCFLAGS="-I$(BUILD_TOP)/external/elfutils/libelf -I/usr/local/opt/openssl/include -fuse-ld=lld" HOSTLDFLAGS="-L/usr/local/opt/openssl/lib -fuse-ld=lld"
+ else
+-  KERNEL_MAKE_FLAGS += CPATH="/usr/include:/usr/include/x86_64-linux-gnu" HOSTCFLAGS="-L/usr/lib/x86_64-linux-gnu -L/usr/lib64"
++  KERNEL_MAKE_FLAGS += CPATH="/usr/include:/usr/include/x86_64-linux-gnu" HOSTCFLAGS="-fuse-ld=lld" HOSTLDFLAGS="-L/usr/lib/x86_64-linux-gnu -L/usr/lib64 -fuse-ld=lld"
+ endif
+ 
+ ifneq ($(TARGET_KERNEL_ADDITIONAL_FLAGS),)
+@@ -138,14 +139,9 @@ endif
+ # Set use the full path to the make command
+ KERNEL_MAKE_CMD := $(BUILD_TOP)/prebuilts/build-tools/$(HOST_OS)-x86/bin/make
+ 
+-# Set the full path to the gcc command
+-ifeq ($(HOST_OS),darwin)
+-KERNEL_HOST_TOOLCHAIN_ROOT := $(GCC_PREBUILTS)/host/i686-apple-darwin-4.2.1/bin/i686-apple-darwin11-
+-else
+-KERNEL_HOST_TOOLCHAIN_ROOT := $(GCC_PREBUILTS)/host/x86_64-linux-glibc2.17-4.8/bin/x86_64-linux-
+-endif
+-KERNEL_MAKE_FLAGS += HOSTCC=$(KERNEL_HOST_TOOLCHAIN_ROOT)gcc
+-KERNEL_MAKE_FLAGS += HOSTCXX=$(KERNEL_HOST_TOOLCHAIN_ROOT)g++
++# Set the full path to the clang command
++KERNEL_MAKE_FLAGS += HOSTCC=$(CLANG_PREBUILTS)/bin/clang
++KERNEL_MAKE_FLAGS += HOSTCXX=$(CLANG_PREBUILTS)/bin/clang++
+ 
+ # Since Linux 4.16, flex and bison are required
+ KERNEL_MAKE_FLAGS += LEX=$(BUILD_TOP)/prebuilts/build-tools/$(HOST_OS)-x86/bin/flex
