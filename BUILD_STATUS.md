@@ -6,7 +6,7 @@ Uruchomiono 2026-10-27 o 21:11 czasu lokalnego.
 - Produkt: `rr_hinoki-userdebug`.
 - Polecenie: `bash build-rr.sh 16`.
 - Źródła: `/home/kejlo/xperia_XA1/source/resurrection-remix-Q-hinoki`.
-- Bieżący log: `/home/kejlo/xperia_XA1/build-logs/rr-Q-hinoki-20261027-221639.log`.
+- Bieżący log: `/home/kejlo/xperia_XA1/build-logs/rr-Q-hinoki-20261027-222925.log`.
 - Stan: trwa; brak gotowego wyniku i testu na telefonie.
 
 Kopie RisingOS zostały sprawdzone i zachowane w
@@ -29,3 +29,8 @@ w starszym frameworku RR. Przeniesiono pełny backport Q z LineageOS
 Poprawiono także dwa uszkodzone znaczniki portugalskiego rr_strings.xml,
 przez które 1101 tłumaczeń było traktowanych jak jeden stylowany napis.
 Wynikowa tabela zasobów Settings nie zawiera już STRING_TOO_LARGE.
+
+Usługa MMS z aktualnego Lineage wymagała także zgodnego interfejsu IMms.
+Przeniesiono kompletny backport przekazywania userId: interfejs, SmsManager
+i MmsServiceBroker (`bbb0014d`, autor Nikhil Kumar). Kompilacja jest wznawiana
+z gotowych wyników; natywne biblioteki i kernel pozostają zachowane.

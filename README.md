@@ -102,7 +102,7 @@ Nie uruchamiaj go ponownie na już przygotowanym lokalnym drzewie RR.
 Po nałożeniu poprawek zwykły `repo sync` może odczepić lokalne gałęzie; przed
 aktualizacją zachowaj commity i świadomie przenieś je na nową bazę.
 
-Zestaw 19 wyeksportowanych patchy sprawdzono przez odtworzenie zmian w
+Zestaw 20 wyeksportowanych patchy sprawdzono przez odtworzenie zmian w
 osobnych indeksach Git: drzewa wszystkich dziesięciu projektów odpowiadają
 bieżącym commitom. Sprawdzono też 38 plików XML urządzenia, istnienie 1655
 plików kopiowanych z BSP/vendor i obecność wszystkich 783 projektów. To
