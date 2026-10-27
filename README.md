@@ -68,6 +68,8 @@ mkdir -p .repo/local_manifests
 cp /home/kejlo/xperia_XA1/source/rr-hinoki-port/hinoki.xml \
   .repo/local_manifests/hinoki.xml
 repo sync -c --no-tags --no-clone-bundle -j4
+git -C vendor/sony/mt6757-common lfs install --local --force
+git -C vendor/sony/mt6757-common lfs pull hinoki-kejlo
 bash /home/kejlo/xperia_XA1/source/rr-hinoki-port/apply-patches.sh "$PWD"
 ```
 
@@ -84,6 +86,8 @@ cp /home/kejlo/xperia_XA1/source/rr-hinoki-port/manifest-base-pinned.xml \
   .repo/manifests/hinoki-pinned.xml
 repo init -m hinoki-pinned.xml
 repo sync -c --no-tags --no-clone-bundle -j4
+git -C vendor/sony/mt6757-common lfs install --local --force
+git -C vendor/sony/mt6757-common lfs pull hinoki-kejlo
 bash /home/kejlo/xperia_XA1/source/rr-hinoki-port/apply-patches.sh "$PWD"
 ```
 
@@ -102,6 +106,13 @@ osobnych indeksach Git: drzewa wszystkich dziewięciu projektów odpowiadają
 bieżącym commitom. Sprawdzono też 38 plików XML urządzenia, istnienie 1655
 plików kopiowanych z BSP/vendor i obecność wszystkich 783 projektów. To
 kontrole statyczne, nie wynik kompilacji ani testu na urządzeniu.
+
+Sprawdzono też 805 bibliotek vendor: wszystkie mają nagłówek ELF. Repo
+domyślnie wyłącza smudge Git LFS, dlatego baza diagnostyczna modemu `.EDB`
+wymaga osobnego `git lfs pull`. W przygotowanym drzewie jest już pełny plik
+61 840 499 B o SHA-256
+`14b96ddc6bbc0579621011bed9af3dcb95af8371a93b4af2007226ff6049e159`,
+zgodnym ze wskaźnikiem LFS. Nie pozostały wskaźniki LFS w plikach vendor.
 
 ## Budowanie później przez użytkownika
 

@@ -12,6 +12,10 @@ Checks completed:
 - Git diff --check clean for all modified projects.
 - No dependency on Rising source directories found in 670 Git alternates.
 - New RR checkout has no out directory.
+- All 805 vendor shared libraries have valid ELF headers.
+- Full 61,840,499-byte modem EDB Git LFS object fetched and checked out.
+- EDB SHA256 matches its LFS OID: 14b96ddc6bbc0579621011bed9af3dcb95af8371a93b4af2007226ff6049e159.
+- No LFS pointers remain in the vendor worktree.
 
 Local heads:
 build/make 6238383f97c748cebbbd65fe87b00b65f48117f0 (base b4ca8b8a399155848ba6305df4c76e7033d0250a)
