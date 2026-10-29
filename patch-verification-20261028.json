@@ -1,7 +1,7 @@
 {
-  "date": "2026-10-28",
-  "patch_count": 32,
-  "project_count": 10,
+  "date": "2026-10-29",
+  "patch_count": 33,
+  "project_count": 11,
   "projects": [
     {
       "project": "build/make",
@@ -81,6 +81,14 @@
       "head": "b61947c96adf5cadb1e9e4dc8e1ab7408b169710",
       "patches": 7,
       "tree": "4fc968f5b66bbbb3ba2c6d179cdebc11c28db94e",
+      "replay_matches": true
+    },
+    {
+      "project": "packages/apps/LineageParts",
+      "base": "ce148ef47c34ea52aa1965726ef81afd60345acb",
+      "head": "1728ec98029048969b57fded623a773235185236",
+      "patches": 1,
+      "tree": "90218b152751bfd35edaac93f767b4ca87d4c6da",
       "replay_matches": true
     }
   ]

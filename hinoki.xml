@@ -22,6 +22,9 @@
   <extend-project name="Resurrection_packages_apps_Settings" path="packages/apps/Settings"
                   revision="c65423981fe1f615b51dc534038110e6e86f88ad" />
 
+  <extend-project name="packages_apps_LineageParts" path="packages/apps/LineageParts"
+                  revision="ce148ef47c34ea52aa1965726ef81afd60345acb" />
+
   <remove-project name="LineageOS/android_external_wpa_supplicant_8" />
   <remove-project name="LineageOS/android_hardware_interfaces" />
   <remove-project name="LineageOS/android_hardware_ril" />

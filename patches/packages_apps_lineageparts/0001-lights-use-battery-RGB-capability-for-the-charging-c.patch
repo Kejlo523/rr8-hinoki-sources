@@ -1,0 +1,122 @@
+From 1728ec98029048969b57fded623a773235185236 Mon Sep 17 00:00:00 2001
+From: Kejlo <62387434+Kejlo523@users.noreply.github.com>
+Date: Thu, 29 Oct 2026 18:54:00 +0100
+Subject: [PATCH] lights: use battery RGB capability for the charging color
+ picker
+
+---
+ .../ApplicationLightPreference.java               | 14 ++++++++++----
+ .../notificationlight/BatteryLightSettings.java   |  3 +++
+ .../notificationlight/LightSettingsDialog.java    | 15 +++++++++------
+ 3 files changed, 22 insertions(+), 10 deletions(-)
+
+diff --git a/src/org/lineageos/lineageparts/notificationlight/ApplicationLightPreference.java b/src/org/lineageos/lineageparts/notificationlight/ApplicationLightPreference.java
+index 0d19d293a58cab45960c312079503256be5312f0..fd4a01367bc6687ce79dc9bd3e5f98c3d0faf989 100644
+--- a/src/org/lineageos/lineageparts/notificationlight/ApplicationLightPreference.java
++++ b/src/org/lineageos/lineageparts/notificationlight/ApplicationLightPreference.java
+@@ -50,6 +50,7 @@ public class ApplicationLightPreference extends CustomDialogPreference<LightSett
+     private int mOnValue;
+     private int mOffValue;
+     private boolean mOnOffChangeable;
++    private boolean mColorChangeable;
+ 
+     private boolean mHasDefaults;
+     private int mDefaultColorValue;
+@@ -102,6 +103,8 @@ public class ApplicationLightPreference extends CustomDialogPreference<LightSett
+         mOnValue = onValue;
+         mOffValue = offValue;
+         mOnOffChangeable = onOffChangeable;
++        mColorChangeable = LightsCapabilities.supports(
++                context, LightsCapabilities.LIGHTS_RGB_NOTIFICATION_LED);
+         mHasDefaults = false;
+         mLedBrightness = 0; // use system brightness
+ 
+@@ -133,10 +136,7 @@ public class ApplicationLightPreference extends CustomDialogPreference<LightSett
+         TextView tView = (TextView) holder.findViewById(android.R.id.summary);
+         tView.setVisibility(View.GONE);
+ 
+-        if (!LightsCapabilities.supports(
+-                getContext(), LightsCapabilities.LIGHTS_RGB_NOTIFICATION_LED)) {
+-            mLightColorView.setVisibility(View.GONE);
+-        }
++        mLightColorView.setVisibility(mColorChangeable ? View.VISIBLE : View.GONE);
+ 
+         updatePreferenceViews();
+         holder.itemView.setOnLongClickListener(this);
+@@ -208,6 +208,7 @@ public class ApplicationLightPreference extends CustomDialogPreference<LightSett
+     public Dialog onCreateDialog(Bundle savedInstanceState) {
+         mDialog = new LightSettingsDialog(getContext(), 0xFF000000 | mColorValue,
+                 mOnValue, mOffValue, mOnOffChangeable, mLedBrightness);
++        mDialog.setColorPickerVisible(mColorChangeable);
+         mDialog.setAlphaSliderVisible(false);
+ 
+         // Initialize the buttons with null handlers, as they will get remapped by
+@@ -283,6 +284,11 @@ public class ApplicationLightPreference extends CustomDialogPreference<LightSett
+         mOnOffChangeable = value;
+     }
+ 
++    public void setColorChangeable(boolean value) {
++        mColorChangeable = value;
++        notifyChanged();
++    }
++
+     public void setDefaultValues(int color, int onValue, int offValue) {
+         mDefaultColorValue = color;
+         mDefaultOnValue = onValue;
+diff --git a/src/org/lineageos/lineageparts/notificationlight/BatteryLightSettings.java b/src/org/lineageos/lineageparts/notificationlight/BatteryLightSettings.java
+index 7dc2ae89812318492df1aa60fc6b8bf4c203d5a0..de0d3a8cb2b423f6305564a646888c0c11cb231f 100644
+--- a/src/org/lineageos/lineageparts/notificationlight/BatteryLightSettings.java
++++ b/src/org/lineageos/lineageparts/notificationlight/BatteryLightSettings.java
+@@ -116,16 +116,19 @@ public class BatteryLightSettings extends SettingsPreferenceFragment implements
+ 
+             // Low, Medium and full color preferences
+             mLowColorPref = prefSet.findPreference(LOW_COLOR_PREF);
++            mLowColorPref.setColorChangeable(mMultiColorLed);
+             mLowColorPref.setOnPreferenceChangeListener(this);
+             mLowColorPref.setDefaultValues(mDefaultLowColor, 0, 0);
+             mLowColorPref.setBrightness(mBatteryBrightness);
+ 
+             mMediumColorPref = prefSet.findPreference(MEDIUM_COLOR_PREF);
++            mMediumColorPref.setColorChangeable(mMultiColorLed);
+             mMediumColorPref.setOnPreferenceChangeListener(this);
+             mMediumColorPref.setDefaultValues(mDefaultMediumColor, 0, 0);
+             mMediumColorPref.setBrightness(mBatteryBrightness);
+ 
+             mFullColorPref = prefSet.findPreference(FULL_COLOR_PREF);
++            mFullColorPref.setColorChangeable(mMultiColorLed);
+             mFullColorPref.setOnPreferenceChangeListener(this);
+             mFullColorPref.setDefaultValues(mDefaultFullColor, 0, 0);
+             mFullColorPref.setBrightness(mBatteryBrightness);
+diff --git a/src/org/lineageos/lineageparts/notificationlight/LightSettingsDialog.java b/src/org/lineageos/lineageparts/notificationlight/LightSettingsDialog.java
+index f2798bf449868e8bbed0e50a2a08e74c67d5ad9a..080c6fbb8c5b88730cfd728683d08731b9809625 100644
+--- a/src/org/lineageos/lineageparts/notificationlight/LightSettingsDialog.java
++++ b/src/org/lineageos/lineageparts/notificationlight/LightSettingsDialog.java
+@@ -177,12 +177,8 @@ public class LightSettingsDialog extends AlertDialog implements
+         setView(layout);
+         setTitle(R.string.edit_light_settings);
+ 
+-        if (!LightsCapabilities.supports(
+-                mContext, LightsCapabilities.LIGHTS_RGB_NOTIFICATION_LED)) {
+-            mColorPicker.setVisibility(View.GONE);
+-            mColorPanel.setVisibility(View.GONE);
+-            mLightsDialogDivider.setVisibility(View.GONE);
+-        }
++        setColorPickerVisible(LightsCapabilities.supports(
++                mContext, LightsCapabilities.LIGHTS_RGB_NOTIFICATION_LED));
+ 
+         mLedBrightness = brightness;
+         mLedLastBrightness = -1; // out of range
+@@ -191,6 +187,13 @@ public class LightSettingsDialog extends AlertDialog implements
+         updateLed();
+     }
+ 
++    public void setColorPickerVisible(boolean visible) {
++        final int visibility = visible ? View.VISIBLE : View.GONE;
++        mColorPicker.setVisibility(visibility);
++        mColorPanel.setVisibility(visibility);
++        mLightsDialogDivider.setVisibility(visibility);
++    }
++
+     private AdapterView.OnItemSelectedListener mPulseSelectionListener =
+             new AdapterView.OnItemSelectedListener() {
+         @Override

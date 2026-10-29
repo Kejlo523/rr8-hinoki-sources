@@ -5,20 +5,24 @@ Resurrection Remix Q. Android 10, produkt `rr_hinoki-userdebug`.
 
 ## Stan
 
-Pełna kompilacja zakończyła się sukcesem 2026-10-27. Gotowy ROM, boot,
-recovery, raport kontroli i sumy SHA-256 są w katalogu:
-`/home/kejlo/xperia_XA1/ROM/RR-Q-8.7.3-20261027-G3112/`.
-ZIP przeszedł kontrolę CRC; boot i recovery mają geometrię oraz DTB zgodne
-z działającą bazą V27. Boot zawiera statyczny first-stage init i ramdisk SAR.
-Szczegóły opisuje `BUILD_STATUS.md`.
+Pełna paczka z wszystkimi poprawkami gotowa 2026-10-29:
+`/home/kejlo/xperia_XA1/ROM/RR-Q-8.7.3-20261029-G3112/`.
+W zestawie są ROM ZIP, boot, recovery, SHA256SUMS, stan źródeł i raport kontroli.
+Ostatni dodatkowy `bacon` wykonano po zakończeniu zmian: 33 patche w 11
+projektach, bez zmiany HEAD i bez zmian roboczych podczas tego przebiegu.
+Zachowano istniejący `out`; nie uruchamiano clean/clobber.
 
-RR uruchomiono i testowano na G3112 przez ADB. Poprawki z 2026-10-28
-są w źródłach i działają na telefonie; stary ZIP z 2026-10-27 ich nie zawiera.
-Przetestowano sprzętowe AVC 1080p z audio i odtwarzaniem, kreator microSD,
-RGB diody oraz adb root. Szczegóły i ograniczenia: `LIVE_TESTS.md`.
-Jest to Vanilla bez Google apps,
-`userdebug / Unofficial / test-keys`, bez podpisania prywatnymi kluczami.
-Baza jest historyczna: Android 10 i SPL `2021-09-05`; daty nie podniesiono.
+ZIP przeszedł CRC. Boot/recovery mieszczą się w partycjach, mają DTB/geometrię
+V27 oraz statyczny first-stage init i ramdisk SAR. Sprawdzono rzeczywiste
+pliki poprawek w target-files, nieobecność usuniętych APK oraz nowy wybór
+koloru diody baterii. Szczegóły: `BUILD_STATUS.md`.
+
+Poprawki testowano na G3112 przez ADB: sprzętowe AVC 1080p z audio i
+odtwarzaniem, kreator microSD, RGB diody z paletą w menu oraz adb root.
+Ta nowa pełna paczka wymaga jeszcze potwierdzenia uruchomienia po instalacji.
+Szczegóły i ograniczenia: `LIVE_TESTS.md`.
+Vanilla bez Google apps, userdebug / Unofficial / test-keys,
+`Kejlo@endozero`. Rzeczywisty SPL `2021-09-05`, bez zmiany samej deklaracji.
 
 RR zachowuje własne ustawienia, personalizację interfejsu, motywy i framework.
 Wybrano go zamiast Paranoid Android Quartz, ponieważ RR Q bazuje na LineageOS
@@ -112,11 +116,11 @@ Nie uruchamiaj go ponownie na już przygotowanym lokalnym drzewie RR.
 Po nałożeniu poprawek zwykły `repo sync` może odczepić lokalne gałęzie; przed
 aktualizacją zachowaj commity i świadomie przenieś je na nową bazę.
 
-Zestaw 32 wyeksportowanych patchy sprawdzono przez odtworzenie zmian w
-osobnych indeksach Git: drzewa wszystkich dziesięciu projektów odpowiadają
-bieżącym commitom. Sprawdzono też 38 plików XML urządzenia, istnienie 1655
-plików kopiowanych z BSP/vendor i obecność wszystkich 783 projektów. To
-kontrole statyczne; wynik późniejszej pełnej kompilacji opisuje `BUILD_STATUS.md`.
+Zestaw 33 wyeksportowanych patchy sprawdzono przez odtworzenie zmian w
+osobnych indeksach Git: drzewa wszystkich jedenastu projektów odpowiadają
+bieżącym commitom. Pierwszy audyt sprawdził też 38 plików XML urządzenia, 1655 wejściowych
+plików BSP/vendor i obecność wszystkich 783 projektów. Nowszą kontrolę
+rzeczywistych wyników kompilacji opisuje `BUILD_STATUS.md`.
 
 Sprawdzono też 805 bibliotek vendor: wszystkie mają nagłówek ELF. Repo
 domyślnie wyłącza smudge Git LFS, dlatego baza diagnostyczna modemu `.EDB`
@@ -173,7 +177,7 @@ nie dodaje brakujących poprawek bezpieczeństwa.
 Pierwszą instalację RR należy traktować jako zmianę dystrybucji; wcześniej
 wykonaj kopię danych. Użytkownik zainstalował RR oraz Magisk 28.1.
 Obecne poprawki testowano na tym systemie; nie flashowano nowego kernela.
-Pełny nowy ZIP z poprawkami wymaga kolejnego przyrostowego `bacon`.
+Pełny ZIP z 2026-10-29 zawiera zapisane w źródłach poprawki.
 
 ## Ograniczenia odziedziczone z V27
 

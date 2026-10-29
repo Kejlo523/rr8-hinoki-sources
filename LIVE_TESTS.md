@@ -2,7 +2,9 @@
 
 Telefon działa na RR Q z 2026-10-27 i Magisk 28.1. Poprawki najpierw testowano
 przez ADB, następnie zapisano w źródłach. Nie czyszczono `out`, nie zmieniano
-produktu `rr_hinoki-userdebug` ani kernela. Nie powstał jeszcze nowy pełny ROM ZIP.
+produktu `rr_hinoki-userdebug` ani kernela. Pełny nowy ROM ZIP z 33 patchami zbudowano 2026-10-29 po tych testach;
+sprawdzono CRC i rzeczywiste pliki wynikowe. Jego uruchomienie po instalacji
+nie zostało jeszcze potwierdzone.
 
 ## Wyniki
 
@@ -14,6 +16,14 @@ produktu `rr_hinoki-userdebug` ani kernela. Nie powstał jeszcze nowy pełny ROM
 - Diody: capability 64 -> 66 dodaje RGB baterii. W LineageParts są kontrolki
   kolorów; wybranie niebieskiego i zielonego sprawdzono w sysfs. Przywrócono
   poprzedni czerwony kolor użytkownika.
+- Menu diody: 2026-10-29 użytkownik zgłosił puste okno edycji. LineageParts
+  sprawdzał RGB powiadomień zamiast baterii. Poprawiono kontrolkę i dialog,
+  przekazując rzeczywistą obsługę RGB baterii; nie dodawano fałszywej zdolności
+  RGB powiadomień. Przyrostowy build LineageParts: 15 kroków / 13 s.
+  APK zainstalowany przez ADB: paleta, HEX i kolorowe ikony są widoczne.
+  Zapisany z menu kolor #00ffd6 odczytano z ustawień; sysfs: R0 G255 B214.
+  Zielony został także fizycznie potwierdzony przez użytkownika. Przy 81%
+  działa „Ładowanie”; kolor „W pełni naładowana” stosowany jest od 90%/FULL.
 - Migotanie: AAL (adaptacyjne przetwarzanie treści) wyłączone przez
   `persist.sys.aal.function=0`. Usługa potwierdza funkcję 0. Zwykła automatyczna
   jasność pozostaje dostępna. Użytkownik: „Jeszcze trudno ocenić”; brak dowodu

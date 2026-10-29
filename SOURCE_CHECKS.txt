@@ -1,37 +1,28 @@
-Source/build audit — updated 2026-10-29
+Source/build audit — 2026-10-29
 Device: Xperia XA1 Dual G3112 / hinoki
-Base: Resurrection Remix Q 8.7.3 / Android 10 / SPL 2021-09-05
-Full Android build 20261027: SUCCESS (old 20-patch artifact).
-Current sources: 32 patches; incremental native/Settings/policy builds PASS.
-Live G3112 tests and limitations are documented in LIVE_TESTS.md.
+Base: Resurrection Remix Q 8.7.3 / Android10 / actual SPL2021-09-05
+Full new OTA ZIP: SUCCESS. Final bacon rerun after sources were frozen.
+33 exported patches in11 projects; exact patch replay matches all HEAD trees.
+No clean/clobber/installclean. Existing out preserved.
 
-Source preparation and checks:
-- All 783 manifest projects fetched and checked out.
-- 32 exported patches in 10 modified projects; patch series replayed to the exact working trees.
-- 38 device XML documents parsed; all 1655 hardware/vendor copy inputs exist.
-- Kernel and vendor retain the exact V27 pinned revisions.
-- Git diff --check passes; all 10 modified worktrees clean.
-- No dependency on deleted Rising directories found in 670 Git alternates.
-- Existing XA1 Lineage tree and out preserved; RR uses its reference Git objects.
-- All 805 vendor shared libraries have ELF headers; no vendor LFS pointers remain.
-- Full 61,840,499-byte modem EDB fetched; SHA256:
-  14b96ddc6bbc0579621011bed9af3dcb95af8371a93b4af2007226ff6049e159.
-- 395 host ELF executables checked with configured library paths: no missing shared libraries.
-- Local M4/Bison parser generation and kernel host Clang configuration passed.
+Artifact and source checks:
+- Full ROM CRC, OTA metadata and standalone/OTA boot equality PASS.
+- Boot/recovery partition size, V27 geometry and DTB, static ARM64 first-stage
+  init, fstab, SAR target-files metadata PASS.
+- Actual packaged native libs, init, Settings, SDK resources and LineageParts
+  match compiled outputs; LED capability66 and color-picker methods present.
+- Removed diagnostic APKs absent; stale outputs backed up outside out.
+- Narrow kernel policy ioctl0x6717 present for camera/mediacodec.
+- SELinux neverallow/Treble tests passed; inherited permissive su/backuptool.
+- Frozen source HEADs and clean worktrees rechecked after final build.
+- Kernel/vendor preserve pinned V27 revisions. Pinned base has783 projects.
+- Existing LineageOS reference Git objects/out and Rising archives preserved.
 
-Build and artifact checks:
-- Final successful log: /home/kejlo/xperia_XA1/build-logs/rr-Q-hinoki-20261027-222925.log
-- Ready directory: /home/kejlo/xperia_XA1/ROM/RR-Q-8.7.3-20261027-G3112/
-- Full ROM ZIP CRC passed; OTA metadata includes hinoki and Android SDK 29.
-- OTA boot equals standalone boot; image geometry and DTB match V27.
-- Static ARM64 first-stage init, fstab and SAR ramdisk metadata verified.
-- SELinux neverallow compilation passed; su/backuptool domains are permissive.
-- Compiled Settings resource table has no STRING_TOO_LARGE entries.
-- SHA256 of copied ROM, boot and recovery match the build outputs.
-- Development certificate: build/make/target/product/security/testkey.
-- Vanilla/userdebug/Unofficial/test-keys; Kejlo@endozero; no private-key signing.
+Final log: /home/kejlo/xperia_XA1/build-logs/rr-Q-hinoki-20261029-185650.log
+Ready: /home/kejlo/xperia_XA1/ROM/RR-Q-8.7.3-20261029-G3112/
+ROM SHA256: ad02391536593537961e3224b52f31a4cf56083423dfb981c51ab6788d64f864
 
-Local heads (exact replay of all exported patches verified):
+Local source heads:
 build/make 6238383f97c748cebbbd65fe87b00b65f48117f0 (base b4ca8b8a399155848ba6305df4c76e7033d0250a, 2 patches)
 frameworks/av ff131b7118b61294dd9362c3a780a827205f954b (base 6ebed82c15a55a672599abf00810f574d293f08f, 3 patches)
 frameworks/base 4df64ef24a5df87128a25725d05fbcb00a7ec651 (base 5e1db0334755ba47245d69857a17f84503f7ce6f, 6 patches)
@@ -42,10 +33,11 @@ vendor/rr 8fc5b3882630715b14b0531e25aff517c5ccb939 (base a8dd039b4acb25bb47179fd
 packages/apps/Settings 05603bcdd8f4a6df839b12c855f857c6ec9488a6 (base c65423981fe1f615b51dc534038110e6e86f88ad, 2 patches)
 device/sony/hinoki e73759a5f803bd1b4ce1dfb1bd0220fe5aeb1f7d (base 8fa5aa75b9fff5a7f9b49475fbe33e5b914bc1a9, 2 patches)
 device/sony/mt6757-common b61947c96adf5cadb1e9e4dc8e1ab7408b169710 (base 489af7e3004c2a2441eddbd394d653c6fc04a934, 7 patches)
-Live tests: boot, adb root, RGB battery LED, authorized microSD wizard format,
-microphone, hardware AVC encode/decode 1080p, Gallery playback with audio.
-Post-reboot 2026-10-29: guarded overlays active, Vcodec owner correct,
-rooted ADB, microphone, hardware AVC decoder, AAL=0, private SD mounted.
-Flicker outcome remains uncertain; no measured battery result.
-Full new ROM ZIP not built after these live fixes.
-Pinned base manifest is fetchable upstream; working-local contains unpublished commits.
+packages/apps/LineageParts 1728ec98029048969b57fded623a773235185236 (base ce148ef47c34ea52aa1965726ef81afd60345acb, 1 patches)
+
+Live tests: AVC encode/decode1080p with audio and playback, microphone,
+RGB battery LED plus working picker UI, authorized microSD format wizard,
+adb root and persistence through reboot. Flicker not yet conclusively cured;
+no measured battery result. New full OTA boot not yet device-tested.
+Working-local contains unpublished commits; pinned-base plus patches is
+reproducible from the specified upstream revisions.

@@ -333,7 +333,7 @@
   <project name="packages_apps_DeskClock" path="packages/apps/DeskClock" remote="rr" revision="ac1aee2f14789d3a391efd2c87fc3f42687fa768" upstream="Q" dest-branch="Q"/>
   <project name="packages_apps_Dialer" path="packages/apps/Dialer" remote="rr" revision="be28ef354375c27c1a6aa030a8dfed7c18f33e96" upstream="Q" dest-branch="Q"/>
   <project name="packages_apps_DocumentsUI" path="packages/apps/DocumentsUI" remote="rr" revision="f4e87130898dfb93079f0fb0884f305e785c4bcd" upstream="Q" dest-branch="Q"/>
-  <project name="packages_apps_LineageParts" path="packages/apps/LineageParts" remote="rr" revision="ce148ef47c34ea52aa1965726ef81afd60345acb" upstream="Q" dest-branch="Q"/>
+  <project name="packages_apps_LineageParts" path="packages/apps/LineageParts" remote="rr" revision="1728ec98029048969b57fded623a773235185236" upstream="Q" dest-branch="Q"/>
   <project name="packages_apps_Messaging" path="packages/apps/Messaging" remote="rr" revision="e657521f5e77ee0ae514aa26fe63f1b8c0ef354e" upstream="Q" dest-branch="Q"/>
   <project name="packages_apps_OmniStyle" path="packages/apps/OmniStyle" remote="rr" revision="18d62d4de70d44c0aaa6cd96a3927d4cd25d6cc5" upstream="Q" dest-branch="Q"/>
   <project name="packages_apps_PackageInstaller" path="packages/apps/PermissionController" remote="rr" revision="b4b420ba9699fd3883d47a5e1fc95242fd4d206d" upstream="Q" dest-branch="Q"/>
