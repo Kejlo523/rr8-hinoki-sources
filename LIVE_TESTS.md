@@ -65,6 +65,10 @@ a aktualizacja Settings pozostała zainstalowana. Mikrofon ponownie odczytał
 Stary init nie uruchamia trybu late_start Magiska, dlatego jednorazową
 korektę właściciela urządzenia uruchamia post-fs-data. Skrypt kończy się
 po rozruchu; nie pozostawia stałego procesu odpytującego urządzenie.
+Wykryto też błąd parsera ioctl w Magisk 28.1: cyfry po `0x` parsuje
+jako dziesiętne. Moduł podaje `0x26391`, co w tej konkretnej wersji
+daje właściwy ioctl `0x6717`. Moduł odmawia działania z inną wersją
+Magiska. Źródłowa polityka ROM-u używa zwykłego poprawnego `0x6717`.
 
 ## Pozostałe ograniczenia
 
