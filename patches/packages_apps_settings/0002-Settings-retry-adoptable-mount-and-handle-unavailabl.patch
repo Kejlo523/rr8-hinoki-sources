@@ -1,0 +1,80 @@
+From 05603bcdd8f4a6df839b12c855f857c6ec9488a6 Mon Sep 17 00:00:00 2001
+From: Kejlo <62387434+Kejlo523@users.noreply.github.com>
+Date: Wed, 28 Oct 2026 15:52:19 +0100
+Subject: [PATCH 2/2] Settings: retry adoptable mount and handle unavailable
+ benchmark safely
+
+---
+ .../StorageWizardFormatProgress.java          | 40 +++++++++++++++++--
+ 1 file changed, 37 insertions(+), 3 deletions(-)
+
+diff --git a/src/com/android/settings/deviceinfo/StorageWizardFormatProgress.java b/src/com/android/settings/deviceinfo/StorageWizardFormatProgress.java
+index 88968b3bd2ab4a3d3540396b440b87f0c7e7dab3..38cb669753d1b0f68b3361d2e2cbaf015d45f9bf 100644
+--- a/src/com/android/settings/deviceinfo/StorageWizardFormatProgress.java
++++ b/src/com/android/settings/deviceinfo/StorageWizardFormatProgress.java
+@@ -35,9 +35,11 @@ import android.widget.Toast;
+ 
+ import com.android.settings.R;
+ 
++import java.io.IOException;
+ import java.util.Objects;
+ import java.util.concurrent.CompletableFuture;
+ import java.util.concurrent.TimeUnit;
++import java.util.concurrent.TimeoutException;
+ 
+ public class StorageWizardFormatProgress extends StorageWizardBase {
+     private static final String PROP_DEBUG_STORAGE_SLOW = "sys.debug.storage_slow";
+@@ -93,7 +95,26 @@ public class StorageWizardFormatProgress extends StorageWizardBase {
+                     storage.partitionPrivate(activity.mDisk.getId());
+                     publishProgress(40);
+ 
+-                    final VolumeInfo privateVol = activity.findFirstVolume(TYPE_PRIVATE, 25);
++                    VolumeInfo privateVol = activity.findFirstVolume(TYPE_PRIVATE, 25);
++                    if (privateVol == null) {
++                        // Legacy devices can fail the first metadata probe after creating
++                        // the encrypted mapping. Retry mounting without formatting again.
++                        for (VolumeInfo vol : storage.getVolumes()) {
++                            if (vol.getType() == TYPE_PRIVATE
++                                    && Objects.equals(activity.mDisk.getId(), vol.getDiskId())
++                                    && (vol.getState() == VolumeInfo.STATE_UNMOUNTABLE
++                                            || vol.getState() == VolumeInfo.STATE_UNMOUNTED)) {
++                                Log.w(TAG, "Retrying mount after format: " + vol.getId());
++                                storage.mount(vol.getId());
++                                break;
++                            }
++                        }
++                        privateVol = activity.findFirstVolume(TYPE_PRIVATE, 40);
++                    }
++                    if (privateVol == null) {
++                        throw new IOException(activity.getString(R.string.storage_mount_failure,
++                                activity.getDiskDescription()));
++                    }
+                     final CompletableFuture<PersistableBundle> result = new CompletableFuture<>();
+                     storage.benchmark(privateVol.getId(), new IVoldTaskListener.Stub() {
+                         @Override
+@@ -104,10 +125,23 @@ public class StorageWizardFormatProgress extends StorageWizardBase {
+ 
+                         @Override
+                         public void onFinished(int status, PersistableBundle extras) {
+-                            result.complete(extras);
++                            if (status != 0 || extras == null) {
++                                Log.w(TAG, "Storage benchmark did not complete: " + status);
++                                result.complete(new PersistableBundle());
++                            } else {
++                                result.complete(extras);
++                            }
+                         }
+                     });
+-                    mPrivateBench = result.get(60, TimeUnit.SECONDS).getLong("run", Long.MAX_VALUE);
++                    try {
++                        mPrivateBench = result.get(60, TimeUnit.SECONDS)
++                                .getLong("run", Long.MAX_VALUE);
++                    } catch (TimeoutException e) {
++                        // The filesystem is already ready. Keep the speed warning instead
++                        // of reporting successful formatting as a failed operation.
++                        Log.w(TAG, "Storage benchmark timed out", e);
++                        mPrivateBench = Long.MAX_VALUE;
++                    }
+ 
+                     // If we just adopted the device that had been providing
+                     // physical storage, then automatically move storage to the

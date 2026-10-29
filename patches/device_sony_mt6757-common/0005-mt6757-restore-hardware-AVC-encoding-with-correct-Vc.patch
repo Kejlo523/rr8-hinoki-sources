@@ -1,0 +1,98 @@
+From 38c5b115996fc7bc180dc237b9ebedfb169e4cd1 Mon Sep 17 00:00:00 2001
+From: Kejlo <62387434+Kejlo523@users.noreply.github.com>
+Date: Wed, 28 Oct 2026 16:08:04 +0100
+Subject: [PATCH 5/7] mt6757: restore hardware AVC encoding with correct Vcodec
+ ownership
+
+---
+ configs/media/media_codecs_mediatek_video.xml | 12 +++++++++---
+ omx/MtkOMXPlugin.cpp                          | 19 ++++++++-----------
+ rootdir/etc/init.mt6757.rc                    |  3 ++-
+ 3 files changed, 19 insertions(+), 15 deletions(-)
+
+diff --git a/configs/media/media_codecs_mediatek_video.xml b/configs/media/media_codecs_mediatek_video.xml
+index 411292a9e76be5200dd3947e60733fd0a91b1a43..6b60a8c0273722634c3d06f9e82d1167c71d97cb 100644
+--- a/configs/media/media_codecs_mediatek_video.xml
++++ b/configs/media/media_codecs_mediatek_video.xml
+@@ -181,9 +181,15 @@ Only the three quirks included above are recognized at this point:
+             <Quirk name="requires-allocate-on-output-ports" />
+             <Limit name="concurrent-instances" max="16" />
+         </MediaCodec>
+-        <!-- The Oreo MTK AVC encoder cannot initialize its kernel driver on
+-             Android 10.  Do not advertise it; Stagefright will select the
+-             software AVC encoder for the conservative camcorder profiles. -->
++        <MediaCodec name="OMX.MTK.VIDEO.ENCODER.AVC" type="video/avc" >
++            <Limit name="size" min="128x96" max="1920x1080" />
++            <Limit name="alignment" value="2x2" />
++            <Limit name="block-size" value="16x16" />
++            <Quirk name="requires-allocate-on-input-ports" />
++            <Quirk name="requires-allocate-on-output-ports" />
++            <Feature name="can-swap-width-height" />
++            <Limit name="concurrent-instances" max="16" />
++        </MediaCodec>
+         <MediaCodec name="OMX.MTK.VIDEO.ENCODER.VPX" type="video/x-vnd.on2.vp8" >
+             <Limit name="size" min="64x64" max="1280x720" />
+             <Limit name="alignment" value="16x16" />
+diff --git a/omx/MtkOMXPlugin.cpp b/omx/MtkOMXPlugin.cpp
+index 7d39e5597c1d8fb9232bf72f512f55eaccf2c52b..f40353dd64a03f1eb185f109b53194f8c7ae7f0a 100644
+--- a/omx/MtkOMXPlugin.cpp
++++ b/omx/MtkOMXPlugin.cpp
+@@ -45,7 +45,7 @@ public:
+             const OMX_CALLBACKTYPE* callbacks, OMX_PTR appData,
+             OMX_COMPONENTTYPE** component) override {
+         if (!mHandle) return OMX_ErrorUndefined;
+-        if (isBrokenComponent(name)) {
++        if (isDisabledComponent(name)) {
+             ALOGW("rejecting unusable component %s", name);
+             return OMX_ErrorComponentNotFound;
+         }
+@@ -64,13 +64,12 @@ public:
+         if (!mHandle) return OMX_ErrorUndefined;
+ 
+         // OMXMaster indexes the list exposed by this plugin.  Translate that
+-        // index while omitting Oreo components that cannot work with the
+-        // Android 10 kernel/userspace interface.
++        // index while applying the same component restrictions as creation.
+         OMX_U32 visible = 0;
+         for (OMX_U32 raw = 0;; ++raw) {
+             OMX_ERRORTYPE err = mEnum(name, static_cast<OMX_U32>(size), raw);
+             if (err != OMX_ErrorNone) return err;
+-            if (isBrokenComponent(name)) continue;
++            if (isDisabledComponent(name)) continue;
+             if (visible++ == index) return OMX_ErrorNone;
+         }
+     }
+@@ -95,14 +94,12 @@ public:
+     }
+ 
+ private:
+-    static bool isBrokenComponent(const char* name) {
++    static bool isDisabledComponent(const char* name) {
+         return name != nullptr &&
+-                (!strcmp(name, "OMX.MTK.VIDEO.ENCODER.AVC") ||
+-                 // All MTK Oreo video decoders use the incompatible Vcodec
+-                 // userspace ABI. Some loop on open(), while others crash the
+-                 // Android 10 OMX service after opening the driver.
+-                 !strncmp(name, "OMX.MTK.VIDEO.DECODER.",
+-                          strlen("OMX.MTK.VIDEO.DECODER.")));
++                // Decoder paths still require independent validation. AVC
++                // encoding works once /dev/Vcodec is owned by mediacodec.
++                !strncmp(name, "OMX.MTK.VIDEO.DECODER.",
++                         strlen("OMX.MTK.VIDEO.DECODER."));
+     }
+ 
+     template <typename T> T load(const char* symbol) {
+diff --git a/rootdir/etc/init.mt6757.rc b/rootdir/etc/init.mt6757.rc
+index eeee31fcfeefb60206bec8b9b909d69468aa6d52..16c56caaaf0bdb141cde869d3df12e0aa90aabae 100755
+--- a/rootdir/etc/init.mt6757.rc
++++ b/rootdir/etc/init.mt6757.rc
+@@ -406,7 +406,8 @@ on post-fs-data
+     # VideoCodec
+     exec - root root -- /system/bin/mknod /dev/Vcodec c 160 0
+     chmod 0660 /dev/Vcodec
+-    chown media system /dev/Vcodec
++    # Android 10's OMX service uses the dedicated mediacodec UID.
++    chown mediacodec system /dev/Vcodec
+ 
+     # MJC
+     chmod 0660 /dev/MJC

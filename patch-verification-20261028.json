@@ -1,0 +1,87 @@
+{
+  "date": "2026-10-28",
+  "patch_count": 32,
+  "project_count": 10,
+  "projects": [
+    {
+      "project": "build/make",
+      "base": "b4ca8b8a399155848ba6305df4c76e7033d0250a",
+      "head": "6238383f97c748cebbbd65fe87b00b65f48117f0",
+      "patches": 2,
+      "tree": "61dc5122818cfaf92c2c6e80244d60b409ca3510",
+      "replay_matches": true
+    },
+    {
+      "project": "frameworks/av",
+      "base": "6ebed82c15a55a672599abf00810f574d293f08f",
+      "head": "ff131b7118b61294dd9362c3a780a827205f954b",
+      "patches": 3,
+      "tree": "bc8839153883bcc72ce35c27276290dc049fda6b",
+      "replay_matches": true
+    },
+    {
+      "project": "frameworks/base",
+      "base": "5e1db0334755ba47245d69857a17f84503f7ce6f",
+      "head": "4df64ef24a5df87128a25725d05fbcb00a7ec651",
+      "patches": 6,
+      "tree": "8af901f422831c079a731b401a3076e64aec4688",
+      "replay_matches": true
+    },
+    {
+      "project": "frameworks/opt/telephony",
+      "base": "97c86fc12d99bd61d64d4ede15f391ee222de346",
+      "head": "16c015a1e7402dce580519a583c881e7715dc74e",
+      "patches": 2,
+      "tree": "d129da9fca9b614a12368e71822f371a69768e7c",
+      "replay_matches": true
+    },
+    {
+      "project": "system/core",
+      "base": "6a23eba3c09c63d90cb57fe5bc1fc857f0b183e4",
+      "head": "7ef8b6fa5886bcde17d86b6b8980f6bcb47e78ab",
+      "patches": 4,
+      "tree": "b64a179fa9935ff72c74652abc0f3ea5dc70ba94",
+      "replay_matches": true
+    },
+    {
+      "project": "system/sepolicy",
+      "base": "2c975b5c7c8e525b83c517be41b8cb5fc5136cd4",
+      "head": "2074c84f4f777af6784b2f7765751e7a318886ae",
+      "patches": 2,
+      "tree": "54b24b8ad43c1bafa42ae5abccc74ecaf5e3ab0a",
+      "replay_matches": true
+    },
+    {
+      "project": "vendor/rr",
+      "base": "a8dd039b4acb25bb47179fd51ae62dfce36c25f6",
+      "head": "8fc5b3882630715b14b0531e25aff517c5ccb939",
+      "patches": 2,
+      "tree": "85eb7de305bc76e6883f24bdeeecdf214b61b3b6",
+      "replay_matches": true
+    },
+    {
+      "project": "packages/apps/Settings",
+      "base": "c65423981fe1f615b51dc534038110e6e86f88ad",
+      "head": "05603bcdd8f4a6df839b12c855f857c6ec9488a6",
+      "patches": 2,
+      "tree": "bdfd9e018c345e9e3c1c3c6cafaeca3ac7c00e6b",
+      "replay_matches": true
+    },
+    {
+      "project": "device/sony/hinoki",
+      "base": "8fa5aa75b9fff5a7f9b49475fbe33e5b914bc1a9",
+      "head": "e73759a5f803bd1b4ce1dfb1bd0220fe5aeb1f7d",
+      "patches": 2,
+      "tree": "2a16a551c4ee2b288ce8c4baf34288eac41f2a46",
+      "replay_matches": true
+    },
+    {
+      "project": "device/sony/mt6757-common",
+      "base": "489af7e3004c2a2441eddbd394d653c6fc04a934",
+      "head": "b61947c96adf5cadb1e9e4dc8e1ab7408b169710",
+      "patches": 7,
+      "tree": "4fc968f5b66bbbb3ba2c6d179cdebc11c28db94e",
+      "replay_matches": true
+    }
+  ]
+}

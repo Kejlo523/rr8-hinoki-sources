@@ -1,11 +1,13 @@
-Final source/build audit — 2026-10-27
+Source/build audit — updated 2026-10-29
 Device: Xperia XA1 Dual G3112 / hinoki
 Base: Resurrection Remix Q 8.7.3 / Android 10 / SPL 2021-09-05
-Full Android build: SUCCESS. No phone flashing or device tests performed.
+Full Android build 20261027: SUCCESS (old 20-patch artifact).
+Current sources: 32 patches; incremental native/Settings/policy builds PASS.
+Live G3112 tests and limitations are documented in LIVE_TESTS.md.
 
 Source preparation and checks:
 - All 783 manifest projects fetched and checked out.
-- 20 exported patches in 10 modified projects; patch series replayed to the exact working trees.
+- 32 exported patches in 10 modified projects; patch series replayed to the exact working trees.
 - 38 device XML documents parsed; all 1655 hardware/vendor copy inputs exist.
 - Kernel and vendor retain the exact V27 pinned revisions.
 - Git diff --check passes; all 10 modified worktrees clean.
@@ -29,17 +31,21 @@ Build and artifact checks:
 - Development certificate: build/make/target/product/security/testkey.
 - Vanilla/userdebug/Unofficial/test-keys; Kejlo@endozero; no private-key signing.
 
-Local heads:
-build/make 6238383f97c748cebbbd65fe87b00b65f48117f0 (base b4ca8b8a399155848ba6305df4c76e7033d0250a)
-frameworks/av 3884deaf9c54d887fe6dc573b9216d23346f5f63 (base 6ebed82c15a55a672599abf00810f574d293f08f)
-frameworks/base f90a2aee556c3cc212f85f8f2713818021261ffc (base 5e1db0334755ba47245d69857a17f84503f7ce6f)
-frameworks/opt/telephony 16c015a1e7402dce580519a583c881e7715dc74e (base 97c86fc12d99bd61d64d4ede15f391ee222de346)
-system/core 1acf85ad7abe787f18d41103a34fdc839ea4e9e5 (base 6a23eba3c09c63d90cb57fe5bc1fc857f0b183e4)
-system/sepolicy 2074c84f4f777af6784b2f7765751e7a318886ae (base 2c975b5c7c8e525b83c517be41b8cb5fc5136cd4)
-vendor/rr 8fc5b3882630715b14b0531e25aff517c5ccb939 (base a8dd039b4acb25bb47179fd51ae62dfce36c25f6)
-packages/apps/Settings 7719dfe56ea751dba310bf2b70960df64c81f9e5 (base c65423981fe1f615b51dc534038110e6e86f88ad)
-device/sony/hinoki 68315adee722d5698db8e86d9adbcd4e0f74a219 (base 8fa5aa75b9fff5a7f9b49475fbe33e5b914bc1a9)
-device/sony/mt6757-common 9f5ec7fb554b14df288cfe475436528b6ab55003 (base 489af7e3004c2a2441eddbd394d653c6fc04a934)
-
-Not validated: installation, boot, hardware functions or power consumption on RR.
+Local heads (exact replay of all exported patches verified):
+build/make 6238383f97c748cebbbd65fe87b00b65f48117f0 (base b4ca8b8a399155848ba6305df4c76e7033d0250a, 2 patches)
+frameworks/av ff131b7118b61294dd9362c3a780a827205f954b (base 6ebed82c15a55a672599abf00810f574d293f08f, 3 patches)
+frameworks/base 4df64ef24a5df87128a25725d05fbcb00a7ec651 (base 5e1db0334755ba47245d69857a17f84503f7ce6f, 6 patches)
+frameworks/opt/telephony 16c015a1e7402dce580519a583c881e7715dc74e (base 97c86fc12d99bd61d64d4ede15f391ee222de346, 2 patches)
+system/core 7ef8b6fa5886bcde17d86b6b8980f6bcb47e78ab (base 6a23eba3c09c63d90cb57fe5bc1fc857f0b183e4, 4 patches)
+system/sepolicy 2074c84f4f777af6784b2f7765751e7a318886ae (base 2c975b5c7c8e525b83c517be41b8cb5fc5136cd4, 2 patches)
+vendor/rr 8fc5b3882630715b14b0531e25aff517c5ccb939 (base a8dd039b4acb25bb47179fd51ae62dfce36c25f6, 2 patches)
+packages/apps/Settings 05603bcdd8f4a6df839b12c855f857c6ec9488a6 (base c65423981fe1f615b51dc534038110e6e86f88ad, 2 patches)
+device/sony/hinoki e73759a5f803bd1b4ce1dfb1bd0220fe5aeb1f7d (base 8fa5aa75b9fff5a7f9b49475fbe33e5b914bc1a9, 2 patches)
+device/sony/mt6757-common b61947c96adf5cadb1e9e4dc8e1ab7408b169710 (base 489af7e3004c2a2441eddbd394d653c6fc04a934, 7 patches)
+Live tests: boot, adb root, RGB battery LED, authorized microSD wizard format,
+microphone, hardware AVC encode/decode 1080p, Gallery playback with audio.
+Post-reboot 2026-10-29: guarded overlays active, Vcodec owner correct,
+rooted ADB, microphone, hardware AVC decoder, AAL=0, private SD mounted.
+Flicker outcome remains uncertain; no measured battery result.
+Full new ROM ZIP not built after these live fixes.
 Pinned base manifest is fetchable upstream; working-local contains unpublished commits.

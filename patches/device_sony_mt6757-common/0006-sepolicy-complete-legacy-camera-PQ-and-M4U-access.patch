@@ -1,0 +1,45 @@
+From 947e4b904225b6f3caa3d63ced681056eb38b64c Mon Sep 17 00:00:00 2001
+From: Kejlo <62387434+Kejlo523@users.noreply.github.com>
+Date: Wed, 28 Oct 2026 16:35:16 +0100
+Subject: [PATCH 6/7] sepolicy: complete legacy camera PQ and M4U access
+
+---
+ sepolicy/mediatek/non_plat/hinoki_legacy_domains.te | 2 +-
+ sepolicy/mediatek/non_plat/mtk_hal_camera.te        | 4 ++++
+ 2 files changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/sepolicy/mediatek/non_plat/hinoki_legacy_domains.te b/sepolicy/mediatek/non_plat/hinoki_legacy_domains.te
+index f72bf2aec9c7b62b4fbe5f8622bf19c31bfcf04c..0d60013626fef7b8b029bf1b46885e5a35a46902 100644
+--- a/sepolicy/mediatek/non_plat/hinoki_legacy_domains.te
++++ b/sepolicy/mediatek/non_plat/hinoki_legacy_domains.te
+@@ -228,7 +228,7 @@ allow hal_audio_default mtk_hal_power_hwservice:hwservice_manager find;
+ # The stock HWC asks the MTK picture-quality HAL and the standard allocator
+ # for every display composition cycle.  Denying these lookups causes a tight
+ # AVC/retry loop and contributes to idle battery drain.
+-allow hal_graphics_composer_default mtk_hal_pq_hwservice:hwservice_manager find;
++hal_client_domain(hal_graphics_composer_default, hal_pq)
+ hal_client_domain(hal_graphics_composer_default, hal_allocator)
+ 
+ # PackageManager scans the Trustonic registry shipped on vendor at boot.
+diff --git a/sepolicy/mediatek/non_plat/mtk_hal_camera.te b/sepolicy/mediatek/non_plat/mtk_hal_camera.te
+index 489540a2ab479886e0e2d28717dbb49768f88c9e..5be4d99c29e8fb1fd2c5a7de479ddb52c5d071d9 100644
+--- a/sepolicy/mediatek/non_plat/mtk_hal_camera.te
++++ b/sepolicy/mediatek/non_plat/mtk_hal_camera.te
+@@ -47,6 +47,9 @@ binder_call(mtk_hal_camera, aee_aedv)
+ # call the graphics allocator hal
+ binder_call(mtk_hal_camera, hal_graphics_allocator)
+ 
++# Camera MDP processing uses the vendor picture-quality service.
++hal_client_domain(mtk_hal_camera, hal_pq)
++
+ # call PowerHal
+ binder_call(mtk_hal_camera, mtk_hal_power)
+ 
+@@ -339,6 +342,7 @@ MTK_M4U_T_DEALLOC_MVA
+ MTK_M4U_T_CONFIG_PORT
+ MTK_M4U_T_DMA_OP
+ MTK_M4U_T_SEC_INIT
++0x6717 # MTK_M4U_T_CACHE_FLUSH_ALL used by the Oreo MDP client.
+ };
+ 
+ # Date: 2019/08/27

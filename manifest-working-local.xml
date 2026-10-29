@@ -254,7 +254,7 @@
   <project name="LineageOS/scripts" path="lineage/scripts" revision="4a84a29727c0d668ee35fb703034e307944936d2" upstream="master" dest-branch="master" groups="tools"/>
   <project name="LineageOS/slackbot" path="lineage/slackbot" revision="ec8ea4d5505905da2151c2dd4608c41b510dbc07" upstream="master" dest-branch="master" groups="infra"/>
   <project name="LineageOS/www" path="lineage/website" revision="e8a0e33d554338be5352c3c24607fb4f9e5be6bc" upstream="master" dest-branch="master" groups="infra"/>
-  <project name="Resurrection_packages_apps_Settings" path="packages/apps/Settings" remote="rr" revision="7719dfe56ea751dba310bf2b70960df64c81f9e5" upstream="c65423981fe1f615b51dc534038110e6e86f88ad" dest-branch="c65423981fe1f615b51dc534038110e6e86f88ad"/>
+  <project name="Resurrection_packages_apps_Settings" path="packages/apps/Settings" remote="rr" revision="05603bcdd8f4a6df839b12c855f857c6ec9488a6" upstream="c65423981fe1f615b51dc534038110e6e86f88ad" dest-branch="c65423981fe1f615b51dc534038110e6e86f88ad"/>
   <project name="SetupWizard" path="packages/apps/SetupWizard" remote="rr" revision="6076488cd545f91501c1dc17d0e11101c038b6b6" upstream="Q" dest-branch="Q"/>
   <project name="android_build" path="build/make" remote="rr" revision="6238383f97c748cebbbd65fe87b00b65f48117f0" upstream="b4ca8b8a399155848ba6305df4c76e7033d0250a" dest-branch="b4ca8b8a399155848ba6305df4c76e7033d0250a">
     <copyfile src="core/root.mk" dest="Makefile"/>
@@ -271,11 +271,11 @@
   </project>
   <project name="android_device_qcom_sepolicy-legacy" path="device/qcom/sepolicy-legacy" remote="rr" revision="d8cfc665b383e39ea3a5d16b9a9d6b123f825243" upstream="Q" dest-branch="Q"/>
   <project name="android_device_qcom_sepolicy-legacy-um" path="device/qcom/sepolicy-legacy-um" remote="rr" revision="b664a56ad05b20b21ed15455ac43d437ea448ca0" upstream="Q" dest-branch="Q"/>
-  <project name="android_device_sony_hinoki" path="device/sony/hinoki" remote="hinoki-kejlo" revision="68315adee722d5698db8e86d9adbcd4e0f74a219" upstream="8fa5aa75b9fff5a7f9b49475fbe33e5b914bc1a9" dest-branch="8fa5aa75b9fff5a7f9b49475fbe33e5b914bc1a9" groups="local::hinoki"/>
-  <project name="android_device_sony_mt6757-common" path="device/sony/mt6757-common" remote="hinoki-kejlo" revision="9f5ec7fb554b14df288cfe475436528b6ab55003" upstream="489af7e3004c2a2441eddbd394d653c6fc04a934" dest-branch="489af7e3004c2a2441eddbd394d653c6fc04a934" groups="local::hinoki"/>
+  <project name="android_device_sony_hinoki" path="device/sony/hinoki" remote="hinoki-kejlo" revision="e73759a5f803bd1b4ce1dfb1bd0220fe5aeb1f7d" upstream="8fa5aa75b9fff5a7f9b49475fbe33e5b914bc1a9" dest-branch="8fa5aa75b9fff5a7f9b49475fbe33e5b914bc1a9" groups="local::hinoki"/>
+  <project name="android_device_sony_mt6757-common" path="device/sony/mt6757-common" remote="hinoki-kejlo" revision="b61947c96adf5cadb1e9e4dc8e1ab7408b169710" upstream="489af7e3004c2a2441eddbd394d653c6fc04a934" dest-branch="489af7e3004c2a2441eddbd394d653c6fc04a934" groups="local::hinoki"/>
   <project name="android_external_sqlite" path="external/sqlite" remote="rr" revision="ee2286d8543be453c1ed70f5a20758cd402e7cde" upstream="Q" dest-branch="Q"/>
   <project name="android_external_wpa_supplicant_8" path="external/wpa_supplicant_8" remote="hinoki-kejlo" revision="20593189965275b3083e81006551fd551ccaed40" groups="local::hinoki"/>
-  <project name="android_frameworks_base" path="frameworks/base" remote="rr" revision="f90a2aee556c3cc212f85f8f2713818021261ffc" upstream="5e1db0334755ba47245d69857a17f84503f7ce6f" dest-branch="5e1db0334755ba47245d69857a17f84503f7ce6f"/>
+  <project name="android_frameworks_base" path="frameworks/base" remote="rr" revision="4df64ef24a5df87128a25725d05fbcb00a7ec651" upstream="5e1db0334755ba47245d69857a17f84503f7ce6f" dest-branch="5e1db0334755ba47245d69857a17f84503f7ce6f"/>
   <project name="android_frameworks_opt_net_wifi" path="frameworks/opt/net/wifi" remote="rr" revision="acfda58698200aef68c99c44fc6004bad58413d1" upstream="Q" dest-branch="Q"/>
   <project name="android_frameworks_support_lottie" path="frameworks/support/lottie" remote="rr" revision="bc05815eb435b5668951b8867a0f90d591ed9277" upstream="Q" dest-branch="Q"/>
   <project name="android_hardware_interfaces" path="hardware/interfaces" remote="hinoki-kejlo" revision="8ace480d75540b6bf8cfd0f0629b6bfbb692fafe" groups="local::hinoki"/>
@@ -287,7 +287,7 @@
   <project name="android_prebuilts_gcc_linux-x86_x86_x86_64-linux-android-4.9" path="prebuilts/gcc/linux-x86/x86/x86_64-linux-android-4.9" remote="hinoki-kejlo" revision="1d8e5847316525d5a645f5b40f97fff0e5dd46f3" groups="local::hinoki"/>
   <project name="android_system_bt" path="system/bt" remote="rr" revision="42bfc8912d0edec1cb5aa833cfd094446d5cb9e9" upstream="Q" dest-branch="Q"/>
   <project name="android_system_ca-certificates" path="system/ca-certificates" remote="hinoki-kejlo" revision="94a4a6dd9e5ea086c7ce327ebdeea28438e3ab5b" groups="local::hinoki"/>
-  <project name="android_system_core" path="system/core" remote="rr" revision="1acf85ad7abe787f18d41103a34fdc839ea4e9e5" upstream="6a23eba3c09c63d90cb57fe5bc1fc857f0b183e4" dest-branch="6a23eba3c09c63d90cb57fe5bc1fc857f0b183e4"/>
+  <project name="android_system_core" path="system/core" remote="rr" revision="7ef8b6fa5886bcde17d86b6b8980f6bcb47e78ab" upstream="6a23eba3c09c63d90cb57fe5bc1fc857f0b183e4" dest-branch="6a23eba3c09c63d90cb57fe5bc1fc857f0b183e4"/>
   <project name="android_system_extras" path="system/extras" remote="hinoki-kejlo" revision="d2b2ad62f3aebf016a09e631ec4b934efa479270" groups="local::hinoki"/>
   <project name="android_system_netd" path="system/netd" remote="rr" revision="a922631ba576fbd372fce9ea75d649ce24e1f707" upstream="Q" dest-branch="Q"/>
   <project name="android_vendor_qcom_opensource_bluetooth_ext" path="vendor/qcom/opensource/commonsys/bluetooth_ext" remote="rr" revision="72d88e86f092d600521dbb12dc1f25e7185005a9" upstream="Q" dest-branch="Q"/>
@@ -317,7 +317,7 @@
   <project name="external_pulse" path="external/pulse" remote="rr" revision="f613ca4a4fc7150ab034d268dbcd78cd81a6434f" upstream="Q" dest-branch="Q"/>
   <project name="external_stitchimage" path="external/stitchimage" remote="rr" revision="b8adc401987ca0b23c4f2ac5258a2ae7209d2404" upstream="Q" dest-branch="Q"/>
   <project name="external_utils" path="external/motorola/faceunlock" remote="bb" revision="0298adead52385ba71cd87766997cde8da8f0253" upstream="Q" dest-branch="Q"/>
-  <project name="frameworks_av" path="frameworks/av" remote="rr" revision="3884deaf9c54d887fe6dc573b9216d23346f5f63" upstream="6ebed82c15a55a672599abf00810f574d293f08f" dest-branch="6ebed82c15a55a672599abf00810f574d293f08f"/>
+  <project name="frameworks_av" path="frameworks/av" remote="rr" revision="ff131b7118b61294dd9362c3a780a827205f954b" upstream="6ebed82c15a55a672599abf00810f574d293f08f" dest-branch="6ebed82c15a55a672599abf00810f574d293f08f"/>
   <project name="frameworks_native" path="frameworks/native" remote="rr" revision="a1841a3b9dba0871b911c8f26347bae6f213a3aa" upstream="Q" dest-branch="Q"/>
   <project name="frameworks_opt_net_ims" path="frameworks/opt/net/ims" remote="rr" revision="b1cfd990a36ce6734b8ab1f42a7e6c0230dc0e0c" upstream="Q" dest-branch="Q"/>
   <project name="frameworks_opt_slimrecent" path="frameworks/opt/slimrecent" remote="rr" revision="11216aa7582b47d309ac7d1f6607c34381e6b193" upstream="Q" dest-branch="Q"/>

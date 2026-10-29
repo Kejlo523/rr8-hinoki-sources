@@ -1,0 +1,48 @@
+From ff131b7118b61294dd9362c3a780a827205f954b Mon Sep 17 00:00:00 2001
+From: Kejlo <62387434+Kejlo523@users.noreply.github.com>
+Date: Wed, 28 Oct 2026 16:37:55 +0100
+Subject: [PATCH 3/3] camera: restore profile sizes and metadata video buffers
+
+---
+ .../StagefrightRecorder.cpp                   | 21 +------------------
+ 1 file changed, 1 insertion(+), 20 deletions(-)
+
+diff --git a/media/libmediaplayerservice/StagefrightRecorder.cpp b/media/libmediaplayerservice/StagefrightRecorder.cpp
+index 842bb722559949dc5b6fe75538ab0a44fd9b9b98..0653303506ee9ddf1d926f68710efd177a2f67ba 100644
+--- a/media/libmediaplayerservice/StagefrightRecorder.cpp
++++ b/media/libmediaplayerservice/StagefrightRecorder.cpp
+@@ -1615,22 +1615,6 @@ status_t StagefrightRecorder::setupMediaSource(
+ 
+ status_t StagefrightRecorder::setupCameraSource(
+         sp<CameraSource> *cameraSource) {
+-    const bool hinokiRawVideoBuffers =
+-            android::base::GetProperty("ro.product.device", "") == "hinoki";
+-    if (hinokiRawVideoBuffers) {
+-        // The stock profile advertises 1080p, but the legacy camera1 record
+-        // heap delivered on Q uses padded camera1 YUV streams. Configuring the
+-        // software encoder for 1080p makes MediaCodecSource copy beyond the
+-        // mapped MTK ashmem buffer after the first batch of frames.  Keep the
+-        // software encode/decode path at VGA and a sane bitrate for this SoC.
+-        mVideoWidth = 480;
+-        mVideoHeight = 320;
+-        mFrameRate = 15;
+-        mVideoBitRate = 700000;
+-        mVideoEncoderLevel = -1;
+-        ALOGI("hinoki: forcing coherent camera/encoder size %dx%d",
+-                mVideoWidth, mVideoHeight);
+-    }
+     status_t err = OK;
+     if ((err = checkVideoEncoderCapabilities()) != OK) {
+         return err;
+@@ -1653,10 +1637,7 @@ status_t StagefrightRecorder::setupCameraSource(
+         *cameraSource = CameraSource::CreateFromCamera(
+                 mCamera, mCameraProxy, mCameraId, mClientName, mClientUid, mClientPid,
+                 videoSize, mFrameRate,
+-                mPreviewSurface, !hinokiRawVideoBuffers);
+-        if (hinokiRawVideoBuffers) {
+-            ALOGI("hinoki: forcing camera1 YUV buffers for software video encoder");
+-        }
++                mPreviewSurface, true);
+     }
+     mCamera.clear();
+     mCameraProxy.clear();

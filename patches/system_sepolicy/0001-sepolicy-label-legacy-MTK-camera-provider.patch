@@ -1,7 +1,7 @@
 From 8a568ea1075029068baacc1ec8ae2b8bdb2db2a6 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?J=C4=99drek?= <62387434+Kejlo523@users.noreply.github.com>
 Date: Thu, 17 Sep 2026 22:47:47 +0200
-Subject: [PATCH] sepolicy: label legacy MTK camera provider
+Subject: [PATCH 1/2] sepolicy: label legacy MTK camera provider
 
 Change-Id: I4190da607daf38c5bd6af7ebc583a439eee5f9c4
 (cherry picked from commit 3fa3d1e4472171c6ecc32342e27e318438ad6f77)

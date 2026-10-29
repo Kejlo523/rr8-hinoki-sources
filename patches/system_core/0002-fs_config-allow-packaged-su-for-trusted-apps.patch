@@ -1,7 +1,7 @@
 From 76dc7e474b56d1ca490b6af7302d0df6edc0b471 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?J=C4=99drek?= <62387434+Kejlo523@users.noreply.github.com>
 Date: Thu, 17 Sep 2026 22:47:47 +0200
-Subject: [PATCH 2/3] fs_config: allow packaged su for trusted apps
+Subject: [PATCH 2/4] fs_config: allow packaged su for trusted apps
 
 (cherry picked from commit 3640887af7a75954dcc5b9a6704f703853e1e0ae)
 ---

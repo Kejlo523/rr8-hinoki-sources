@@ -1,0 +1,134 @@
+From b61947c96adf5cadb1e9e4dc8e1ab7408b169710 Mon Sep 17 00:00:00 2001
+From: Kejlo <62387434+Kejlo523@users.noreply.github.com>
+Date: Wed, 28 Oct 2026 16:45:36 +0100
+Subject: [PATCH 7/7] media: enable validated MT6757 hardware AVC decoding
+
+---
+ configs/media/media_codecs_mediatek_video.xml | 18 +++++++++---------
+ configs/media/media_codecs_performance.xml    |  2 +-
+ configs/media/mtk_omx_core.cfg                | 16 ++++++++++++++++
+ mt6757.mk                                     |  4 ++++
+ omx/MtkOMXPlugin.cpp                          |  7 ++++---
+ sepolicy/mediatek/non_plat/mediacodec.te      |  3 +++
+ 6 files changed, 37 insertions(+), 13 deletions(-)
+ create mode 100644 configs/media/mtk_omx_core.cfg
+
+diff --git a/configs/media/media_codecs_mediatek_video.xml b/configs/media/media_codecs_mediatek_video.xml
+index 6b60a8c0273722634c3d06f9e82d1167c71d97cb..eddbea695c04735a265ba9c34d8bd9bef6d38ebe 100644
+--- a/configs/media/media_codecs_mediatek_video.xml
++++ b/configs/media/media_codecs_mediatek_video.xml
+@@ -78,7 +78,15 @@ Only the three quirks included above are recognized at this point:
+ 
+ <Included>
+     <Decoders>
+-        <!-- MTK's Oreo decoders use an incompatible Vcodec userspace ABI.
++        <MediaCodec name="OMX.MTK.VIDEO.DECODER.AVC" type="video/avc" >
++            <Limit name="size" min="64x64" max="1920x1088" />
++            <Quirk name="wants-NAL-fragments" />
++            <Quirk name="requires-allocate-on-input-ports" />
++            <Quirk name="requires-allocate-on-output-ports" />
++            <Feature name="adaptive-playback"/>
++            <Limit name="concurrent-instances" max="16" />
++        </MediaCodec>
++        <!-- Other Oreo video decoders remain disabled pending validation.
+         <MediaCodec name="OMX.MTK.VIDEO.DECODER.MPEG2" type="video/mpeg2" >
+             <Limit name="size" min="16x16" max="1920x1088" />
+             <Quirk name="requires-allocate-on-input-ports" />
+@@ -114,14 +122,6 @@ Only the three quirks included above are recognized at this point:
+             <Feature name="adaptive-playback"/>
+             <Limit name="concurrent-instances" max="16" />
+         </MediaCodec>
+-        <MediaCodec name="OMX.MTK.VIDEO.DECODER.AVC" type="video/avc" >
+-            <Limit name="size" min="64x64" max="1920x1088" />
+-            <Quirk name="wants-NAL-fragments" />
+-            <Quirk name="requires-allocate-on-input-ports" />
+-            <Quirk name="requires-allocate-on-output-ports" />
+-            <Feature name="adaptive-playback"/>
+-            <Limit name="concurrent-instances" max="16" />
+-        </MediaCodec>
+         <MediaCodec name="OMX.MTK.VIDEO.DECODER.AVC.secure" type="video/avc" >
+             <Limit name="size" min="64x64" max="1920x1088" />
+             <Quirk name="requires-allocate-on-input-ports" />
+diff --git a/configs/media/media_codecs_performance.xml b/configs/media/media_codecs_performance.xml
+index 40dea974475fda5b2fa5d55ca4885bbcbb1c73e2..ac4d3f1ee7fa46ef235c18237569b9bd00fc2c1a 100644
+--- a/configs/media/media_codecs_performance.xml
++++ b/configs/media/media_codecs_performance.xml
+@@ -112,7 +112,7 @@ Only the three quirks included above are recognized at this point:
+     </Encoders>
+     <Decoders>
+         <!-- MTK codec -->
+-        <!-- Disabled: the Oreo MTK Vcodec ABI is not usable on Android 10.
++        <!-- Historical stock MTK performance bounds omitted pending Q measurements.
+         <MediaCodec name="OMX.MTK.VIDEO.DECODER.MPEG4" type="video/mp4v-es" update="true">
+             <Limit name="measured-frame-rate-176x144" range="626-1377" />
+             <Limit name="measured-frame-rate-480x360" range="317-698" />
+diff --git a/configs/media/mtk_omx_core.cfg b/configs/media/mtk_omx_core.cfg
+new file mode 100644
+index 0000000000000000000000000000000000000000..c2e0ba408cf8dc746674831263eab2e0e696c4be
+--- /dev/null
++++ b/configs/media/mtk_omx_core.cfg
+@@ -0,0 +1,16 @@
++OMX.MTK.AUDIO.DECODER.MP3   audio_decoder.mp3   libMtkOmxMp3Dec.so  32
++OMX.MTK.AUDIO.DECODER.G711.ALAW   audio_decoder.g711    libMtkOmxG711Dec.so 32
++OMX.MTK.AUDIO.DECODER.G711.MLAW   audio_decoder.g711    libMtkOmxG711Dec.so 32
++OMX.MTK.AUDIO.DECODER.WMA   audio_decoder.wma   libMtkOmxWmaDec.so  32
++OMX.MTK.VIDEO.ENCODER.AVC   video_encoder.avc   libMtkOmxVenc.so    16
++OMX.MTK.VIDEO.ENCODER.HEVC  video_encoder.hevc  libMtkOmxVenc.so    16
++OMX.MTK.VIDEO.ENCODER.H263  video_encoder.h263  libMtkOmxVenc.so    16
++OMX.MTK.VIDEO.ENCODER.MPEG4 video_encoder.mpeg4 libMtkOmxVenc.so    16
++OMX.MTK.VIDEO.ENCODER.VPX   video_encoder.vp8   libMtkOmxVenc.so    16
++OMX.MTK.AUDIO.DECODER.APE audio_decoder.ape libMtkOmxApeDec.so  32
++OMX.MTK.AUDIO.DECODER.ADPCM.MS  audio_decoder.adpcm libMtkOmxAdpcmDec.so    32
++OMX.MTK.AUDIO.DECODER.ADPCM.DVI audio_decoder.adpcm libMtkOmxAdpcmDec.so    32
++OMX.MTK.AUDIO.DECODER.RAW audio_decoder.raw libMtkOmxRawDec.so  32
++OMX.MTK.AUDIO.DECODER.GSM audio_decoder.gsm libMtkOmxGsmDec.so  32
++OMX.MTK.AUDIO.DECODER.ALAC audio_decoder.alac libMtkOmxAlacDec.so   32
++OMX.MTK.VIDEO.DECODER.AVC video_decoder.avc libMtkOmxVdecEx.so 16
+diff --git a/mt6757.mk b/mt6757.mk
+index 799fbfa5d2b9bccb3167c10689d24bf5145ac852..286026e73920845d9a76c1980c59f0c4e23bd06d 100755
+--- a/mt6757.mk
++++ b/mt6757.mk
+@@ -23,6 +23,10 @@ $(call inherit-product, $(SRC_TARGET_DIR)/product/core_64_bit.mk)
+ $(call inherit-product, $(SRC_TARGET_DIR)/product/full_base_telephony.mk)
+ 
+ # Vendor
++# Prefer the validated AVC registration over the inherited decoder-free BSP
++# configuration. PRODUCT_COPY_FILES keeps the first entry for each destination.
++PRODUCT_COPY_FILES += \
++    $(COMMON_PATH)/configs/media/mtk_omx_core.cfg:$(TARGET_COPY_OUT_VENDOR)/etc/mtk_omx_core.cfg
+ $(call inherit-product-if-exists, vendor/sony/mt6757-common/mt6757-common-vendor.mk)
+ 
+ # Sony's Oreo MTK radio HAL needs the VNDK 27 radio ABI.  Keep it under a
+diff --git a/omx/MtkOMXPlugin.cpp b/omx/MtkOMXPlugin.cpp
+index f40353dd64a03f1eb185f109b53194f8c7ae7f0a..bdc9299e5b76811e814ce51e3187666c2c26cc76 100644
+--- a/omx/MtkOMXPlugin.cpp
++++ b/omx/MtkOMXPlugin.cpp
+@@ -96,10 +96,11 @@ public:
+ private:
+     static bool isDisabledComponent(const char* name) {
+         return name != nullptr &&
+-                // Decoder paths still require independent validation. AVC
+-                // encoding works once /dev/Vcodec is owned by mediacodec.
++                // AVC encode/decode is validated on Q. Keep other legacy
++                // decoder paths disabled until they are tested separately.
+                 !strncmp(name, "OMX.MTK.VIDEO.DECODER.",
+-                         strlen("OMX.MTK.VIDEO.DECODER."));
++                         strlen("OMX.MTK.VIDEO.DECODER.")) &&
++                strcmp(name, "OMX.MTK.VIDEO.DECODER.AVC") != 0;
+     }
+ 
+     template <typename T> T load(const char* symbol) {
+diff --git a/sepolicy/mediatek/non_plat/mediacodec.te b/sepolicy/mediatek/non_plat/mediacodec.te
+index 67b4c0d7235d7d0507b70b99430faf5a0dd0d663..65a38b679e55b9488f118557108159758b81d0ad 100644
+--- a/sepolicy/mediatek/non_plat/mediacodec.te
++++ b/sepolicy/mediatek/non_plat/mediacodec.te
+@@ -152,6 +152,9 @@ allowxperm mediacodec proc_m4u:file ioctl MTK_M4U_T_CONFIG_PORT;
+ allowxperm mediacodec proc_m4u:file ioctl MTK_M4U_T_CACHE_SYNC;
+ allowxperm mediacodec proc_m4u:file ioctl MTK_M4U_T_CONFIG_PORT_ARRAY;
+ 
++# Oreo AVC decoder's MDP conversion flushes its shared M4U buffers.
++allowxperm mediacodec proc_m4u:file ioctl 0x6717;
++
+ # Date : 2019/12/12
+ # Purpose : allow media sources to access /sys/bus/platform/drivers/mem_bw_ctrl/*
+ allow mediacodec sysfs_concurrency_scenario:file rw_file_perms;

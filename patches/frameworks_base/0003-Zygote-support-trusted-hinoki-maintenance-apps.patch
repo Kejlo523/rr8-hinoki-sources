@@ -1,7 +1,7 @@
 From 8a1348f44bbf54da5c89d8b1251f8b3e1eddba9d Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?J=C4=99drek?= <62387434+Kejlo523@users.noreply.github.com>
 Date: Thu, 17 Sep 2026 22:47:29 +0200
-Subject: [PATCH 3/3] Zygote: support trusted hinoki maintenance apps
+Subject: [PATCH 3/6] Zygote: support trusted hinoki maintenance apps
 
 (cherry picked from commit aac70f519c943fcf7538097b2f6da98b55600b9b)
 ---

@@ -1,7 +1,8 @@
 From ba15c129cd3432f63c107090839abc4e991eb639 Mon Sep 17 00:00:00 2001
 From: Jonathan Scott <scottjonathan@google.com>
 Date: Tue, 5 Apr 2022 18:47:56 +0000
-Subject: [PATCH] [qt] RESTRICT AUTOMERGE Add finalizeWorkProfileProvisioning.
+Subject: [PATCH 4/6] [qt] RESTRICT AUTOMERGE Add
+ finalizeWorkProfileProvisioning.
 
 Test: atest android.devicepolicy.cts.DevicePolicyManagerTest
 Bug: 210469972

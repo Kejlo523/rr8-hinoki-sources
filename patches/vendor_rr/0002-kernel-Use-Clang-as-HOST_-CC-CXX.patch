@@ -1,7 +1,7 @@
 From 8fc5b3882630715b14b0531e25aff517c5ccb939 Mon Sep 17 00:00:00 2001
 From: LuK1337 <priv.luk@gmail.com>
 Date: Tue, 22 Sep 2020 23:11:21 +0200
-Subject: [PATCH] kernel: Use Clang as HOST_{CC,CXX}
+Subject: [PATCH 2/2] kernel: Use Clang as HOST_{CC,CXX}
 
 GCC was deprecated upstream, so switch to Clang.
 

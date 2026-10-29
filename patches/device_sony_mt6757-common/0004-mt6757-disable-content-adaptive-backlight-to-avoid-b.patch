@@ -1,0 +1,23 @@
+From 860af8c58a2cf4d5ba47f4a7849211369f2b45a5 Mon Sep 17 00:00:00 2001
+From: Kejlo <62387434+Kejlo523@users.noreply.github.com>
+Date: Wed, 28 Oct 2026 16:01:57 +0100
+Subject: [PATCH 4/7] mt6757: disable content-adaptive backlight to avoid
+ brightness pumping
+
+---
+ system.prop | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/system.prop b/system.prop
+index 6fa13e6da9b26332e510d57428a73463463dd7e9..b499af3e59c1367f275034438e33feaea1379552 100755
+--- a/system.prop
++++ b/system.prop
+@@ -186,6 +186,8 @@ ro.sys.sdcardfs=1
+ persist.mtk.datashaping.support=1
+ persist.datashaping.alarmgroup=1
+ debug.sf.disable_backpressure=1
++# Keep backlight independent of displayed content; framework auto brightness remains available.
++persist.sys.aal.function=0
+ ro.ksc5601_write=0
+ ro.email_support_ucs2=0
+ ro.ussd_ksc5601=0

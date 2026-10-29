@@ -1,0 +1,21 @@
+From ddf6e7d510ae8aadcfcdaab20f72372b9e1eba30 Mon Sep 17 00:00:00 2001
+From: Kejlo <62387434+Kejlo523@users.noreply.github.com>
+Date: Wed, 28 Oct 2026 15:30:58 +0100
+Subject: [PATCH 3/7] mt6757: expose RGB controls for the charging LED
+
+---
+ overlay-lineage/lineage-sdk/lineage/res/res/values/config.xml | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/overlay-lineage/lineage-sdk/lineage/res/res/values/config.xml b/overlay-lineage/lineage-sdk/lineage/res/res/values/config.xml
+index 3c13936870d7c0d5fd3f002c7a3da03cca826135..69e2430693a6f99643c59715c35c1dd53ae4a063 100644
+--- a/overlay-lineage/lineage-sdk/lineage/res/res/values/config.xml
++++ b/overlay-lineage/lineage-sdk/lineage/res/res/values/config.xml
+@@ -42,5 +42,6 @@
+          LIGHTS_BATTERY_LED = 64
+          For example, a device support pulsating, RGB notification and
+          battery LEDs would set this config to 11. -->
+-    <integer name="config_deviceLightCapabilities" translatable="false">64</integer>
++    <!-- The stock lights HAL drives the charging LED's red, green and blue channels. -->
++    <integer name="config_deviceLightCapabilities" translatable="false">66</integer>
+ </resources>

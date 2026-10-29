@@ -1,7 +1,7 @@
 From 2074c84f4f777af6784b2f7765751e7a318886ae Mon Sep 17 00:00:00 2001
 From: David Anderson <dvander@google.com>
 Date: Fri, 25 Oct 2019 15:11:58 -0700
-Subject: [PATCH] Add fastbootd to the sys_rawio whitelist.
+Subject: [PATCH 2/2] Add fastbootd to the sys_rawio whitelist.
 
 A similar problem was previously encountered with the boot control HAL
 in bug 118011561. The HAL may need access to emmc to implement

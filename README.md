@@ -12,8 +12,11 @@ ZIP przeszedł kontrolę CRC; boot i recovery mają geometrię oraz DTB zgodne
 z działającą bazą V27. Boot zawiera statyczny first-stage init i ramdisk SAR.
 Szczegóły opisuje `BUILD_STATUS.md`.
 
-RR nie był jeszcze testowany na telefonie. Działanie poprzedniego LineageOS
-nie potwierdza działania sprzętu w RR. Jest to Vanilla bez Google apps,
+RR uruchomiono i testowano na G3112 przez ADB. Poprawki z 2026-10-28
+są w źródłach i działają na telefonie; stary ZIP z 2026-10-27 ich nie zawiera.
+Przetestowano sprzętowe AVC 1080p z audio i odtwarzaniem, kreator microSD,
+RGB diody oraz adb root. Szczegóły i ograniczenia: `LIVE_TESTS.md`.
+Jest to Vanilla bez Google apps,
 `userdebug / Unofficial / test-keys`, bez podpisania prywatnymi kluczami.
 Baza jest historyczna: Android 10 i SPL `2021-09-05`; daty nie podniesiono.
 
@@ -42,7 +45,8 @@ Nie ma zależności od archiwizowanych katalogów RisingOS `s10e` / `samsung_a6`
   MTP z legacy USB gadget, Wi-Fi bez niezgodnego cross-DSO CFI.
 - Poprawki SELinux, GNSS/SUPL, HWC, NFC i wykrywania słuchawek zawarte w
   istniejących drzewach urządzenia, kernela i vendor.
-- Aplikacje Device Info HW, Kernel Adiutor, DuckDuckGo i busybox z V27.
+- DuckDuckGo i busybox z V27. Device Info HW i Kernel Adiutor usunięto
+  z bieżących źródeł wraz z ich wyjątkami roota.
 - Obejście braku ładowalnych modułów kernela w `vendor/rr/build/tasks/kernel.mk`.
 
 Zmiany w projektach RR są osobnymi commitami gałęzi `rr-Q-hinoki` i plikami
@@ -108,7 +112,7 @@ Nie uruchamiaj go ponownie na już przygotowanym lokalnym drzewie RR.
 Po nałożeniu poprawek zwykły `repo sync` może odczepić lokalne gałęzie; przed
 aktualizacją zachowaj commity i świadomie przenieś je na nową bazę.
 
-Zestaw 20 wyeksportowanych patchy sprawdzono przez odtworzenie zmian w
+Zestaw 32 wyeksportowanych patchy sprawdzono przez odtworzenie zmian w
 osobnych indeksach Git: drzewa wszystkich dziesięciu projektów odpowiadają
 bieżącym commitom. Sprawdzono też 38 plików XML urządzenia, istnienie 1655
 plików kopiowanych z BSP/vendor i obecność wszystkich 783 projektów. To
@@ -167,20 +171,26 @@ kluczami. Nie kopiuj ani nie publikuj prywatnych kluczy z
 nie dodaje brakujących poprawek bezpieczeństwa.
 
 Pierwszą instalację RR należy traktować jako zmianę dystrybucji; wcześniej
-wykonaj kopię danych. Nie flashowano żadnych obrazów w ramach tego przygotowania.
-Magisk 28.1 był testowany na Lineage V27, nie na tym buildzie RR.
+wykonaj kopię danych. Użytkownik zainstalował RR oraz Magisk 28.1.
+Obecne poprawki testowano na tym systemie; nie flashowano nowego kernela.
+Pełny nowy ZIP z poprawkami wymaga kolejnego przyrostowego `bacon`.
 
 ## Ograniczenia odziedziczone z V27
 
 - Podstawowa ścieżka jednej karty SIM; pełny dual-SIM pozostaje niedokończony.
-- Stare sprzętowe dekodery wideo MTK są wyłączone; działają dekodery programowe.
-- Nagrywanie ekranu korzysta z programowego enkodera AVC.
+- Sprzętowe H.264/AVC: enkoder i dekoder działają w testach 1080p na G3112.
+  Pozostałe stare dekodery wideo MTK nadal wyłączone do osobnej walidacji.
+- Nagrywanie ekranu nie było ponownie sprawdzane po uruchomieniu enkodera AVC.
 - NFC ograniczono do stabilnego NFC-A; Beam/P2P i równoległe rozszerzenia NXP
   pozostają wyłączone w konfiguracji sprzętu.
 - Domyślny tryb SELinux to enforcing; polityka wersji userdebug zawiera domeny
   `su` i `backuptool` w trybie permissive. Kontrola neverallow przechodzi.
-  Zachowanie polityki i ewentualne odmowy AVC wymagają testu na telefonie.
-- Pobór energii i wszystkie funkcje trzeba sprawdzić ponownie na RR.
+  Poprawiono odmowy PQ/M4U wykryte w testach aparatu, kompozytora i AVC.
+  To nie jest pełny audyt całej odziedziczonej polityki.
+- Wyłączenie AAL jest aktywne, ale użytkownik nie potwierdził jeszcze
+  ostatecznego ustąpienia losowego migotania. Poboru energii nie zmierzono.
+- Karta microSD rzeczywiście przekracza próg testu szybkości; poprawka
+  zapobiega awarii kreatora, nie ukrywa ostrzeżenia o wolnym nośniku.
 
 ## Źródła i autorzy
 

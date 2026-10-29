@@ -1,0 +1,21 @@
+From 7d72422891229e5dee30c2bed8e9ff3faf5de263 Mon Sep 17 00:00:00 2001
+From: Kejlo <62387434+Kejlo523@users.noreply.github.com>
+Date: Wed, 28 Oct 2026 14:48:16 +0100
+Subject: [PATCH 2/7] mt6757: remove root domains for unbundled diagnostics
+ apps
+
+---
+ sepolicy/mediatek/plat_private/seapp_contexts | 2 --
+ 1 file changed, 2 deletions(-)
+
+diff --git a/sepolicy/mediatek/plat_private/seapp_contexts b/sepolicy/mediatek/plat_private/seapp_contexts
+index 1144f2a2c086ebc193e2308c4bd40aace93796d4..83e0ba3761f85066bc320d4b2e613a625b7a5f7c 100644
+--- a/sepolicy/mediatek/plat_private/seapp_contexts
++++ b/sepolicy/mediatek/plat_private/seapp_contexts
+@@ -1,6 +1,4 @@
+ # These explicitly selected, preinstalled maintenance applications may invoke
+ # the userdebug su binary.  Package-name matching keeps the root-capable domain
+ # limited to the APKs bundled by the hinoki product.
+-user=_app isPrivApp=true seinfo=platform name=ru.andr7e.deviceinfohw domain=su type=privapp_data_file levelFrom=user
+-user=_app isPrivApp=true seinfo=platform name=com.nhellfire.kerneladiutor domain=su type=privapp_data_file levelFrom=user
+ user=_app isPrivApp=true seinfo=platform name=com.duckduckgo.mobile.android domain=su type=privapp_data_file levelFrom=user

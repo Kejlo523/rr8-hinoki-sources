@@ -1,7 +1,7 @@
 From 83ddb990509df155dc6fe26ff58fb2a40bd487fb Mon Sep 17 00:00:00 2001
 From: Kejlo523 <62387434+Kejlo523@users.noreply.github.com>
 Date: Fri, 28 Aug 2026 10:40:07 +0200
-Subject: [PATCH 2/3] MtpServer: support legacy gadget without control fd
+Subject: [PATCH 2/6] MtpServer: support legacy gadget without control fd
 
 Change-Id: Idaee138b09ba81169ff9542fc49cac092ca62540
 (cherry picked from commit aef0021a28e2c87a4ccfbe5dd836eb4160101e00)

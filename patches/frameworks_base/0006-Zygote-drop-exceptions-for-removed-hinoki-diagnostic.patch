@@ -1,0 +1,25 @@
+From 4df64ef24a5df87128a25725d05fbcb00a7ec651 Mon Sep 17 00:00:00 2001
+From: Kejlo <62387434+Kejlo523@users.noreply.github.com>
+Date: Wed, 28 Oct 2026 14:48:17 +0100
+Subject: [PATCH 6/6] Zygote: drop exceptions for removed hinoki diagnostics
+ apps
+
+---
+ core/jni/com_android_internal_os_Zygote.cpp | 4 +---
+ 1 file changed, 1 insertion(+), 3 deletions(-)
+
+diff --git a/core/jni/com_android_internal_os_Zygote.cpp b/core/jni/com_android_internal_os_Zygote.cpp
+index 3c2364ff2f2dacbd20ce1ab651c358c205489b02..713c3744e99ce70d17f2c5a90efe7eebbd8afe07 100644
+--- a/core/jni/com_android_internal_os_Zygote.cpp
++++ b/core/jni/com_android_internal_os_Zygote.cpp
+@@ -535,9 +535,7 @@ static void PreApplicationInit() {
+ static bool IsHinokiRootApp(const std::optional<std::string>& nice_name) {
+   if (!nice_name.has_value()) return false;
+ 
+-  static constexpr std::array<std::string_view, 3> kRootPackages = {
+-      "ru.andr7e.deviceinfohw",
+-      "com.nhellfire.kerneladiutor",
++  static constexpr std::array<std::string_view, 1> kRootPackages = {
+       "com.duckduckgo.mobile.android",
+   };
+   const std::string_view process_name(nice_name.value());

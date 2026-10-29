@@ -1,0 +1,31 @@
+From 43cb9d93ddba4294b3da8e55e0d01b9574b5f47a Mon Sep 17 00:00:00 2001
+From: Kejlo <62387434+Kejlo523@users.noreply.github.com>
+Date: Wed, 28 Oct 2026 16:35:16 +0100
+Subject: [PATCH 2/3] audio: preserve legacy MT6757 microphone addresses
+
+---
+ .../audiopolicy/managerdefault/AudioPolicyManager.cpp  | 10 ++++++++--
+ 1 file changed, 8 insertions(+), 2 deletions(-)
+
+diff --git a/services/audiopolicy/managerdefault/AudioPolicyManager.cpp b/services/audiopolicy/managerdefault/AudioPolicyManager.cpp
+index 958088779d9dc8369947cfb3c663bde9d3241ccd..7247955f3ac490f5cd813a39fdbc4229302112f3 100644
+--- a/services/audiopolicy/managerdefault/AudioPolicyManager.cpp
++++ b/services/audiopolicy/managerdefault/AudioPolicyManager.cpp
+@@ -4484,9 +4484,15 @@ status_t AudioPolicyManager::initialize() {
+                  mDefaultOutputDevice->toString().c_str());
+         status = NO_INIT;
+     }
+-    // If microphones address is empty, set it according to device type
++    // The Oreo MT6757 input HAL rejects the synthetic "bottom=" / "back="
++    // parameters. Keep the empty microphone addresses from its board policy.
++    char boardPlatform[PROPERTY_VALUE_MAX];
++    property_get("ro.board.platform", boardPlatform, "");
++    const bool legacyMtkMicAddresses = strcmp(boardPlatform, "mt6757") == 0;
++
++    // If microphones address is empty, set it according to device type.
+     for (size_t i = 0; i < mAvailableInputDevices.size(); i++) {
+-        if (mAvailableInputDevices[i]->address().isEmpty()) {
++        if (!legacyMtkMicAddresses && mAvailableInputDevices[i]->address().isEmpty()) {
+             if (mAvailableInputDevices[i]->type() == AUDIO_DEVICE_IN_BUILTIN_MIC) {
+                 mAvailableInputDevices[i]->setAddress(String8(AUDIO_BOTTOM_MICROPHONE_ADDRESS));
+             } else if (mAvailableInputDevices[i]->type() == AUDIO_DEVICE_IN_BACK_MIC) {
