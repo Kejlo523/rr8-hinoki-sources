@@ -3,6 +3,37 @@
 Przeniesienie poprawek sprzętowych z portu LineageOS 17.1 hinoki V27 do
 Resurrection Remix Q. Android 10, produkt `rr_hinoki-userdebug`.
 
+## Publiczne źródła wydania
+
+Repozytorium: https://github.com/Kejlo523/rr8-hinoki-sources
+
+Tag `rr-q-8.7.3-20261029` zachowuje zestaw źródeł użyty do paczki
+`RROS-Q-8.7.3-20261029-hinoki-Unofficial.zip`: 33 poprawki w 11 projektach,
+manifest z 783 przypiętymi rewizjami, konfigurację urządzenia i odnośnik
+do dokładnych źródeł kernela. Paczki ROM i prywatnych kluczy tutaj nie ma.
+
+Odtworzenie źródeł z GitHuba, **wyłącznie w nowym katalogu**:
+
+```bash
+mkdir rr-hinoki
+cd rr-hinoki
+repo init -u https://github.com/Kejlo523/rr8-hinoki-sources.git \
+  -b refs/tags/rr-q-8.7.3-20261029 -m manifest-base-pinned.xml \
+  --depth=1 --no-clone-bundle
+repo sync -c --no-tags --no-clone-bundle -j4
+git -C vendor/sony/mt6757-common lfs install --local --force
+git -C vendor/sony/mt6757-common lfs pull hinoki-kejlo
+bash .repo/manifests/apply-patches.sh "$PWD"
+```
+
+Wymagane są `repo`, Git i Git LFS. Manifest pobiera publiczne rewizje bazowe,
+a skrypt nakłada dołączone poprawki, zachowując ich autorstwo. Otrzymane
+drzewa źródeł odpowiadają rewizjom opisanym w
+`patch-verification-20261028.json`; datę w nazwie raportu zachowano, jego treść
+dotyczy końcowych 33 patchy z 2026-10-29. Skrypt nie uruchamia kompilacji.
+Przygotowanie hosta i wrapper budowy opisano niżej; jego lokalne ścieżki
+trzeba dostosować, jeśli budujesz na innym komputerze.
+
 ## Stan
 
 Pełna paczka z wszystkimi poprawkami gotowa 2026-10-29:
@@ -203,3 +234,16 @@ Pełny ZIP z 2026-10-29 zawiera zapisane w źródłach poprawki.
 - [Kernel MT6757](https://github.com/Kejlo523/android_kernel_sony_mt6757)
 - LineageOS, Resurrection Remix, SonyMTKDev i autorzy zachowani w commitach
   oraz nagłówkach źródeł.
+
+## Licencje i źródła kernela
+
+Poszczególne projekty i poprawki zachowują licencje zmienianych plików
+upstream; cały ROM nie jest objęty jedną licencją. Nie zmieniono oznaczeń
+autorstwa ani nagłówków licencyjnych. Własnościowe pliki vendor są pobierane
+z osobnego repozytorium wskazanego w manifeście.
+
+Kernel z tego wydania jest udostępniony na GPLv2:
+
+- [Pełne źródła, dokładna rewizja użyta w buildzie](https://github.com/Kejlo523/android_kernel_sony_mt6757/tree/7d74b28506bdaf4c025b602b6a50ad58f017ed5a)
+- [Konfiguracja lineage_hinoki_defconfig](https://github.com/Kejlo523/android_kernel_sony_mt6757/blob/7d74b28506bdaf4c025b602b6a50ad58f017ed5a/arch/arm64/configs/lineage_hinoki_defconfig)
+- [Tekst licencji kernela](https://github.com/Kejlo523/android_kernel_sony_mt6757/blob/7d74b28506bdaf4c025b602b6a50ad58f017ed5a/COPYING)
